@@ -25,12 +25,14 @@ class Account extends Component {
         this.handleSave = this.handleSave.bind(this);
     }
 
-    handleEditScounts() {
+    handleEditScouts(evt) {
 
     }
 
-    handleSave() {
-        this.props.location.push("/");
+    handleSave(evt) {
+        evt.preventDefault();
+
+        this.props.history.push("/");
     }
 
     render() {
@@ -81,8 +83,14 @@ class Account extends Component {
                             </small>
                         </div>
 
-                        <button type="button" className="btn btn-info mx-2">Scoutisti</button>
-                        <button type="submit" className="btn btn-primary mx-2">Aggiorna</button>
+                        <button type="button"
+                                className="btn btn-info mx-2"
+                                onClick={this.handleEditScouts}
+                        >Scoutisti</button>
+                        <button type="submit"
+                                className="btn btn-primary mx-2"
+                                onClick={this.handleSave}
+                        >Aggiorna</button>
 
                         {/*
                         <div className="form-group">
