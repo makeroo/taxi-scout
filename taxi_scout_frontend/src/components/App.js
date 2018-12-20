@@ -3,6 +3,7 @@ import {BrowserRouter as Router, Route} from "react-router-dom";
 import Home from "./Home";
 import Account from "./Account";
 import Excursion from "./Excursion";
+import Children from "./Children";
 import './App.scss';
 
 
@@ -33,6 +34,7 @@ class App extends Component {
                     <Route path="/" exact component={Home}/>
                     <Route path="/account/" component={Account}/>
                     <Route path="/excursion/" component={Excursion}/>
+                    <Route path="/children/" component={Children}/>
                 </div>
             </Router>
         );

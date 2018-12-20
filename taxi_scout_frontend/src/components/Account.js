@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import {withRouter} from "react-router-dom";
 import {connect} from "react-redux";
 
 
@@ -26,11 +25,13 @@ class Account extends Component {
     }
 
     handleEditScouts(evt) {
-
+        this.props.history.push("/children/");
     }
 
     handleSave(evt) {
         evt.preventDefault();
+
+        // TODO: save
 
         this.props.history.push("/");
     }
@@ -48,12 +49,6 @@ class Account extends Component {
                                    className="form-control-plaintext"
                                    id="email"
                                    value="email@example.com"/>
-                                {/*<input type="email"
-                                   className="form-control"
-                                   id="email"
-                                   placeholder="Inserisci l'email"
-                            />*/}
-                            {/*<button type="submit" className="btn btn-primary mb-2">Confirm identity</button>*/}
                         </div>
                         <div className="form-group">
                             <label htmlFor="fullName">Nome</label>
@@ -83,24 +78,31 @@ class Account extends Component {
                             </small>
                         </div>
 
-                        <button type="button"
-                                className="btn btn-info mx-2"
-                                onClick={this.handleEditScouts}
-                        >Scoutisti</button>
+                        <div className="form-group">
+                            <label htmlFor="children">Scoutisti</label>
+                            <div className="input-group mb-2" onClick={this.handleEditScouts}>
+                                <input type="text"
+                                       readOnly
+                                       className="form-control"
+                                       id="children"
+                                       placeholder="Nessuno inserito"
+                                       value="Cassandra, Greta, Morgana, Genoveffa, GIuseppoina"
+                                       area-describedby="childrenHelpBlock"
+                                />
+                                <div className="input-group-append">
+                                    <div className="input-group-text"><i className="material-icons">edit</i></div>
+                                </div>
+                            </div>
+                            <small id="childrenHelpBlock" className="form-text text-muted">
+                                I bimbi che ogni settimana devi scarrozzare a giro per il mondo.
+                            </small>
+                        </div>
+
                         <button type="submit"
                                 className="btn btn-primary mx-2"
                                 onClick={this.handleSave}
                         >Aggiorna</button>
 
-                        {/*
-                        <div className="form-group">
-                            <label htmlFor="password">Password</label>
-                            <input type="password"
-                                   className="form-control"
-                                   id="password"
-                                   placeholder="Password"/>
-                        </div>
-                        */}
                     </form>
                 </div>
             </div>
