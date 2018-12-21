@@ -98,40 +98,6 @@ class PickupSummary extends Component {
                                     <span className="input-group-text" id="inputGroupPrepend"><i className="material-icons">remove</i></span>
                                 </div>
                             </div>
-                                {/*
-                            <form className="form-inline">
-
-                                <div className="input-group">
-                                    <span className="input-group-btn">
-                                        <button type="button"
-                                                className="btn btn-default btn-number"
-                                                disabled="disabled">
-
-                                        </button>
-                                    </span>
-                                    <input type="text" name="quant[1]"
-                                           className="form-control input-number"
-                                           value="1"
-                                           min="1" max="10"/>
-                                    <span className="input-group-btn">
-                                        <button type="button"
-                                                className="btn btn-default btn-number"
-                                                data-type="plus"
-                                                data-field="quant[1]">
-                                            <i className="material-icons">remove</i>
-                                        </button>
-                                    </span>
-                                </div>
-                                <div className="form-group-sm">
-                                    <label htmlFor="children">Posti liberi</label>
-                                    <input type="number"
-                                           className="form-control free-seats-input"
-                                           id="children"
-                                           placeholder="Nessuno inserito"
-                                           value="3"
-                                           area-describedby="childrenHelpBlock"
-                                    />
-                                </div>*/}
                         </td>
                     </tr>
                     <tr>
