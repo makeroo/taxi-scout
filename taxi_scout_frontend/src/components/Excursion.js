@@ -8,7 +8,7 @@ class Excursion extends Component {
     render() {
         return (
             <div className="container">
-                <h2>Uscita del 15/12</h2>
+                <h2>Uscita del 15/12 <Link className="float-right" to="/"><i className="material-icons align-middle">home</i></Link></h2>
 
                 <ExcursionConfiguration/>
 

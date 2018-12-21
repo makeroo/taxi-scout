@@ -76,14 +76,52 @@ class PickupSummary extends Component {
                         <td><i className="material-icons">check</i></td>
                         <td>
                             <small>sonia</small>
+                            <br/>
                             <small>esselunga</small>
-                            <small>15:45</small>
+                            <small className="mx-2">15:45</small>
                         </td>
                     </tr>
                     <tr>
                         <th>io</th>
                         <td colSpan="2">
+                            <label htmlFor="children">Posti liberi</label>
+                            <div className="input-group input-group-sm" style={{width:'65%'}}>
+                                <div className="input-group-prepend">
+                                    <span className="input-group-text" id="inputGroupPrepend"><i className="material-icons">add</i></span>
+                                </div>
+                                <input type="text" className="form-control"
+                                       id="children"
+                                       value="2"
+                                       aria-describedby="inputGroupPrepend"
+                                       required/>
+                                <div className="input-group-append">
+                                    <span className="input-group-text" id="inputGroupPrepend"><i className="material-icons">remove</i></span>
+                                </div>
+                            </div>
+                                {/*
                             <form className="form-inline">
+
+                                <div className="input-group">
+                                    <span className="input-group-btn">
+                                        <button type="button"
+                                                className="btn btn-default btn-number"
+                                                disabled="disabled">
+
+                                        </button>
+                                    </span>
+                                    <input type="text" name="quant[1]"
+                                           className="form-control input-number"
+                                           value="1"
+                                           min="1" max="10"/>
+                                    <span className="input-group-btn">
+                                        <button type="button"
+                                                className="btn btn-default btn-number"
+                                                data-type="plus"
+                                                data-field="quant[1]">
+                                            <i className="material-icons">remove</i>
+                                        </button>
+                                    </span>
+                                </div>
                                 <div className="form-group-sm">
                                     <label htmlFor="children">Posti liberi</label>
                                     <input type="number"
@@ -93,8 +131,21 @@ class PickupSummary extends Component {
                                            value="3"
                                            area-describedby="childrenHelpBlock"
                                     />
-                                </div>
-                            </form>
+                                </div>*/}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colSpan="3">
+                            <table className="w-100">
+                                <caption style={{'caption-side':'top'}}>Riassunto incontri</caption>
+                                <tbody>
+                                <tr>
+                                    <td>sonia</td>
+                                    <td>esselunga</td>
+                                    <td>15:45</td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                     <tr>
