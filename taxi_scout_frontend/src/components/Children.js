@@ -19,7 +19,10 @@ class Children extends Component {
                 <div className="row mt-4">
                     <table className="table">
                         <tr>
-                            <td>Cassandra</td>
+                            <td><input type="text"
+                                       className="form-control form-control-sm"
+                                       readOnly={true}
+                                       value="Cassandra"/></td>
                             <td className="text-center">
                                 <i className="material-icons mx-2">edit</i>
                                 <i className="material-icons">remove</i>
