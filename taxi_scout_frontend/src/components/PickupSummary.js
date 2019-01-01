@@ -3,9 +3,9 @@ import {connect} from "react-redux";
 import "./PickupSummary.scss";
 
 
-const mapStateToProps = (state) => {
+const mapStateToProps = (state, props) => {
     return {
-
+        activity: state[props.direction],
     };
 };
 
@@ -18,11 +18,11 @@ const mapDispatchToProps = (dispatch) => {
 
 
 class PickupSummary extends Component {
-    constructor(props) {
+    /*constructor(props) {
         super(props);
 
 //        this.handleEditScouts = this.handleEditScouts.bind(this);
-    }
+    }*/
 
 /*    handleEditScouts(evt) {
         this.props.history.push("/children/");
@@ -55,7 +55,7 @@ class PickupSummary extends Component {
                             <br/>
                             <small>ponte</small>
                         </td>
-                        <td><i className="material-icons">question_answer</i></td> {/* forum, chat_bubble(_outline) */}
+                        <td><i className="material-icons">question_answer</i></td>
                     </tr>
                     <tr>
                         <td>Giuliano</td>
@@ -69,7 +69,7 @@ class PickupSummary extends Component {
                             <br/>
                             <small>ponte</small>
                         </td>
-                        <td><i className="material-icons">chat_bubble</i></td> {/* forum, chat_bubble(_outline) */}
+                        <td><i className="material-icons">chat_bubble</i>{/* forum, chat_bubble(_outline) */}</td>
                     </tr>
                     <tr>
                         <td>Andrea</td>
@@ -103,7 +103,7 @@ class PickupSummary extends Component {
                     <tr>
                         <td colSpan="3">
                             <table className="w-100">
-                                <caption style={{'caption-side':'top'}}>Riassunto incontri</caption>
+                                <caption style={{captionSide:'top'}}>Riassunto incontri</caption>
                                 <tbody>
                                 <tr>
                                     <td>sonia</td>

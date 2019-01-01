@@ -18,6 +18,7 @@ class Children extends Component {
                 <h2>I tuoi scout</h2>
                 <div className="row mt-4">
                     <table className="table">
+                        <tbody>
                         <tr>
                             <td><input type="text"
                                        className="form-control form-control-sm"
@@ -49,6 +50,7 @@ class Children extends Component {
                                 <i className="material-icons">remove</i>
                             </td>
                         </tr>
+                        </tbody>
                     </table>
                 </div>
                 <div className="row justify-content-end">

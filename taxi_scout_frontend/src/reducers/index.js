@@ -12,8 +12,12 @@ export default rootReducer;
 
 
 import { combineReducers } from 'redux';
-
-//import { i18n } from "./i18n";
+import { excursion } from "./excursion";
+import { account } from "./account";
+import { scouts } from "./scouts";
 
 export default combineReducers({
+    account,
+    scouts,
+    excursion,
 });

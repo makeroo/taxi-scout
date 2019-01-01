@@ -1,0 +1,96 @@
+SET SESSION default_storage_engine = "MyISAM";
+SET SESSION time_zone = "+0:00";
+ALTER DATABASE CHARACTER SET "utf8";
+
+
+CREATE TABLE account (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+
+  email VARCHAR(255) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  verified_email TINYINT NOT NULL DEFAULT 0,
+
+  -- TODO: contacts
+
+  PRIMARY KEY (id)
+);
+
+
+CREATE TABLE scout (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+
+  PRIMARY KEY (id)
+);
+
+
+CREATE TABLE tutor_scout (
+  tutor_id INTEGER NOT NULL,
+  scout_id INTEGER NOT NULL,
+
+  FOREIGN KEY (tutor_id) REFERENCES account(id) ON DELETE CASCADE,
+  FOREIGN KEY (scout_id) REFERENCES scout(id) ON DELETE CASCADE,
+  PRIMARY KEY (tutor_id, scout_id)
+);
+
+
+CREATE TABLE program_activity (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+
+  `date` DATE NOT NULL DEFAULT '2010-01-01',
+  `from` TIME NOT NULL DEFAULT '00:00:00',
+  `to` TIME NOT NULL DEFAULT '00:00:00',
+  location VARCHAR(255) NOT NULL DEFAULT '',
+
+  PRIMARY KEY (id)
+);
+
+
+CREATE TABLE scout_activity (
+  activity_id INTEGER NOT NULL,
+  scout_id INTEGER NOT NULL,
+  participate TINYINT NOT NULL DEFAULT 1,
+
+  FOREIGN KEY (activity_id) REFERENCES program_activity(id) ON DELETE CASCADE,
+  FOREIGN KEY (scout_id) REFERENCES scout(id) ON DELETE CASCADE
+);
+
+
+CREATE TABLE role (
+  activity_id INTEGER NOT NULL,
+  account_id INTEGER NOT NULL,
+
+  direction CHAR(1) NOT NULL DEFAULT 'O', -- Out, Return
+  role CHAR(1) NOT NULL DEFAULT 'N', -- None, Free seats, Rider
+  free_seats INTEGER NOT NULL DEFAULT 0,
+
+  FOREIGN KEY (activity_id) REFERENCES program_activity(id) ON DELETE CASCADE,
+  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
+  PRIMARY KEY (activity_id, account_id, direction)
+);
+
+
+CREATE TABLE booking (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+
+  requester_id INTEGER NOT NULL, -- who needs his/her children to be taken
+  rider_id INTEGER NOT NULL, -- who transport children
+
+  state CHAR(1) DEFAULT 'N', -- Not confirmed, Accepted, Revoked / cancelled
+  meeting_place VARCHAR(255) NOT NULL DEFAULT '',
+  meeting_time TIME NOT NULL,
+
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE booking_chat_message (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+
+  booking_id INTEGER NOT NULL,
+  author_id INTEGER NOT NULL,
+  msg VARCHAR(255) NOT NULL,
+  msg_date DATETIME NOT NULL,
+
+  PRIMARY KEY (id)
+);

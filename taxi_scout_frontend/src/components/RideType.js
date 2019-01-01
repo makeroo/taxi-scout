@@ -15,13 +15,13 @@ const mapDispatchToProps = (dispatch) => {
     };
 };
 
-
+// FIXME: rename -> RideRole
 class RideType extends Component {
-    constructor(props) {
+    /*constructor(props) {
         super(props);
 
 //        this.handleEditScouts = this.handleEditScouts.bind(this);
-    }
+    }*/
 
     /*    handleEditScouts(evt) {
             this.props.history.push("/children/");
