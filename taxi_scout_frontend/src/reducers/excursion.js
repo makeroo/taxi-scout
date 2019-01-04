@@ -1,5 +1,7 @@
 import {coordination} from "./coordination";
-import {SET_SCOUT_PARTICIPATE} from "../constants/action-types";
+import {SET_RIDE_ROLE, SET_RIDES, SET_SCOUT_PARTICIPATE} from "../constants/action-types";
+import {forEach} from "lodash";
+
 
 export function excursion(
     state = {
@@ -88,24 +90,47 @@ export function excursion(
     action
 ) {
     switch (action.type) {
-        case SET_SCOUT_PARTICIPATE:
-            const data = state.data;
-            const scouts = data.scouts;
-            const scout = scouts[action.scoutId];
-            const newScout = {
-                ...scout,
-                participate: action.participate,
-            };
-            let newScouts = { ...scouts };
-            newScouts[scout.id] = newScout;
+        case SET_SCOUT_PARTICIPATE: {
+            let scouts = { ...state.data.scouts };
+            let scout = { ...scouts[action.scoutId] };
+
+            scout.participate = action.participate;
+
+            scouts[scout.id] = scout;
 
             return {
                 ...state,
                 data: {
-                    ...data,
-                    scouts: newScouts
+                    ...state.data,
+                    scouts
                 }
             };
+        }
+        case SET_RIDES: {
+            let tutors = { ...state.data.tutors };
+            let tutor = { ...tutors[action.tutorId] };
+
+            tutor.rides = action.rides;
+
+            tutors[tutor.id] = tutor;
+
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    tutors
+                }
+            };
+        }
+        case SET_RIDE_ROLE: {
+            state = { ...state };
+
+            forEach(action.directions, direction => {
+                state[direction] = coordination(state[direction], action);
+            });
+
+            return state;
+        }
         default:
             return {
                 ...state,
