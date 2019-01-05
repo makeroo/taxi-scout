@@ -6,27 +6,23 @@ export function coordination(
     state = {
         tutors: {
             4: {
-                id: 4,
                 role: 'R',
                 free_seats: 2,
                 scouts: [1],
             },
             6: {
-                id: 6,
                 role: 'R',
                 free_seats: 0,
                 scouts: [4],
             },
             2: {
-                id: 2,
                 role: 'R',
                 free_seats: 0,
                 scouts: [3, 6],
             },
             5: {
-                id: 5,
                 role: 'F',
-                free_seets: 2,
+                free_seats: 2,
                 scouts: [7, 88, 8, 9],
             }
         },
