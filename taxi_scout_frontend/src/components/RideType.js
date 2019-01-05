@@ -6,16 +6,20 @@ import {setRides} from "../actions/set_rides";
 import "./RideType.scss";
 
 const mapStateToProps = (state, props) => {
+    const myId = state.account.data.id;
+
     return {
-        tutor: state.excursion[props.direction].tutors[state.account.data.id],
+        myId,
+        tutor_desc: state.excursion.data.tutors[myId],
+        tutor_dir: state.excursion[props.direction].tutors[myId],
     };
 };
 
 
 const mapDispatchToProps = (dispatch) => {
     return {
-        setRideRole: (tutorId, role) => dispatch(
-            setRideRole(tutorId, role, ['out', 'return'])
+        setRideRole: (tutorId, role, direction) => dispatch(
+            setRideRole(tutorId, role, [direction])
         ),
         setRides: (tutorId, rides) => dispatch(
             setRides(tutorId, rides)
@@ -32,21 +36,21 @@ class RideType extends Component {
     }
 
     selectRole (role) {
-        this.props.setRideRole(this.props.tutor.id, role);
+        this.props.setRideRole(this.props.myId, role, this.props.direction);
     }
 
     handleRideMutex (evt) {
-        this.props.setRides(this.props.tutor.id, evt.target.value === 'on' ? 1 : 2);
+        this.props.setRides(this.props.myId, evt.target.checked ? 1 : 2);
     }
 
     render() {
         const taxiClass = classNames('btn', 'ridetype-selector', {
-            'btn-primary': this.props.tutor.role === 'F',
-            'btn-outline-primary': this.props.tutor.role !== 'F',
+            'btn-primary': this.props.tutor_dir.role === 'F',
+            'btn-outline-primary': this.props.tutor_dir.role !== 'F',
         });
         const riderClass = classNames('btn', 'ridetype-selector', {
-            'btn-primary': this.props.tutor.role === 'R',
-            'btn-outline-primary': this.props.tutor.role !== 'R',
+            'btn-primary': this.props.tutor_dir.role === 'R',
+            'btn-outline-primary': this.props.tutor_dir.role !== 'R',
         });
 
         return (
@@ -67,7 +71,7 @@ class RideType extends Component {
                     <div className="form-group form-check">
                         <input type="checkbox" className="form-check-input"
                                id={'riderMutex' + this.props.direction}
-                               checked={this.props.tutor.rides === 1}
+                               checked={this.props.tutor_desc.rides === 1}
                                onChange={this.handleRideMutex}
                         />
                         <label className="form-check-label"
