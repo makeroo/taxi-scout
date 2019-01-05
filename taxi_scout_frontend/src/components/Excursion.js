@@ -3,7 +3,7 @@ import {Link} from "react-router-dom";
 import PickupSummary from "./PickupSummary";
 import ExcursionConfiguration from "./ExcursionConfiguration";
 import RideType from "./RideType";
-import connect from "react-redux/es/connect/connect";
+import {connect} from "react-redux";
 
 const mapStateToProps = (state) => {
     return {
