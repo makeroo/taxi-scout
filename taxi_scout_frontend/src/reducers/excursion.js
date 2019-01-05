@@ -1,6 +1,7 @@
 import {coordination} from "./coordination";
 import {SET_RIDE_ROLE, SET_RIDES, SET_SCOUT_PARTICIPATE} from "../constants/action-types";
 import {forEach} from "lodash";
+import {cloneAndPatch} from "../utils/patch";
 
 
 export function excursion(
@@ -90,38 +91,20 @@ export function excursion(
     action
 ) {
     switch (action.type) {
-        case SET_SCOUT_PARTICIPATE: {
-            let scouts = { ...state.data.scouts };
-            let scout = { ...scouts[action.scoutId] };
+        case SET_SCOUT_PARTICIPATE:
+            return cloneAndPatch(
+                state,
+                ['data', 'scouts', action.scoutId, 'participate'],
+                action.participate
+            );
 
-            scout.participate = action.participate;
+        case SET_RIDES:
+            return cloneAndPatch(
+                state,
+                ['data', 'tutors', action.tutorId, 'rides'],
+                action.rides
+            );
 
-            scouts[scout.id] = scout;
-
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    scouts
-                }
-            };
-        }
-        case SET_RIDES: {
-            let tutors = { ...state.data.tutors };
-            let tutor = { ...tutors[action.tutorId] };
-
-            tutor.rides = action.rides;
-
-            tutors[tutor.id] = tutor;
-
-            return {
-                ...state,
-                data: {
-                    ...state.data,
-                    tutors
-                }
-            };
-        }
         case SET_RIDE_ROLE: {
             state = { ...state };
 

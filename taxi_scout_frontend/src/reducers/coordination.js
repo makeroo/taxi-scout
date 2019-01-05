@@ -1,4 +1,6 @@
-import {SET_RIDE_ROLE, SET_RIDES} from "../constants/action-types";
+import {SET_RIDE_ROLE} from "../constants/action-types";
+import {cloneAndPatch} from "../utils/patch";
+
 
 export function coordination(
     state = {
@@ -42,16 +44,11 @@ export function coordination(
 ) {
     switch (action.type) {
         case SET_RIDE_ROLE: {
-            let tutors = { ...state.tutors }; // shallow clone
-            let tutor = { ...tutors[action.tutorId] };
-
-            tutor.role = action.role;
-            tutors[action.tutorId] = tutor;
-
-            return {
-                ...state,
-                tutors
-            };
+            return cloneAndPatch(
+                state,
+                ['tutors', action.tutorId, 'role'],
+                action.role
+            );
         }
         default:
             return state;
