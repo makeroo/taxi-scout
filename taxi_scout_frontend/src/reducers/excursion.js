@@ -1,6 +1,6 @@
 import {coordination} from "./coordination";
 import {SET_RIDE_ROLE, SET_RIDES, SET_SCOUT_PARTICIPATE} from "../constants/action-types";
-import {forEach} from "lodash";
+//import {forEach} from "lodash";
 import {cloneAndPatch} from "../utils/patch";
 
 
@@ -108,9 +108,16 @@ export function excursion(
         case SET_RIDE_ROLE: {
             state = { ...state };
 
-            forEach(action.directions, direction => {
-                state[direction] = coordination(state[direction], action);
-            });
+            const dir = action.direction;
+
+            state[dir] = coordination(state[dir], action);
+
+            if (state.data.tutors[action.tutorId].rides === 1) {
+                const otherDir = dir === 'out' ? 'return' : 'out';
+                action.role = action.role === 'R' ? 'F' : 'R';
+
+                state[otherDir] = coordination(state[otherDir], action);
+            }
 
             return state;
         }

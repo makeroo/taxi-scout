@@ -19,7 +19,7 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         setRideRole: (tutorId, role, direction) => dispatch(
-            setRideRole(tutorId, role, [direction])
+            setRideRole(tutorId, role, direction)
         ),
         setRides: (tutorId, rides) => dispatch(
             setRides(tutorId, rides)
