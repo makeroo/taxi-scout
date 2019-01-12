@@ -34,6 +34,13 @@ export function coordination(
                 point: 'esselunga',
                 time: '15:45',
             },
+            {
+                id: 47,
+                taxi: 5,
+                riders: [1, 4],
+                point: 'parcheggio',
+                time: '15:35',
+            },
         ]
     },
     action

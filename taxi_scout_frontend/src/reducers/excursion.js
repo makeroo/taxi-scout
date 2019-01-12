@@ -63,17 +63,23 @@ export function excursion(
                     id: 4,
                     name: 'Serena',
                     // email,
+                    // verified_email
+                    address: 'San Cassiano',
                     rides: 1, // enum 0/1/2: 0 neither Out nor Return, 1 either Out or Return, 2 both Out and Return if needed
                 },
                 6: {
                     id: 6,
                     name: 'Sonia',
                     // email,
+                    // verified_email
+                    address: 'Ponte',
                     rides: 1,
                 },
                 2: {
                     id: 2,
                     name: 'Ilenia',
+                    // verified_email
+                    address: 'Sant\'Alessio',
                     // email,
                     rides: 1,
                 },
@@ -81,6 +87,8 @@ export function excursion(
                     id: 5,
                     name: 'Simone',
                     // email
+                    // verified_email
+                    address: 'San Concordio',
                     rides: 1,
                 },
             },

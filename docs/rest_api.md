@@ -18,6 +18,7 @@ id: INT
 name: STRING
 email: STRING
 verified_email: BOOL
+address: STRING
 }
 
 /api/v1/account/:id/scouts
