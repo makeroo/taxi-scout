@@ -20,7 +20,7 @@ func main() {
 
 	port := flag.Int("http-port", 8008, "HTTP port to listen to")
 
-	dao, err := storage.NewSqlDatastore("mysql", "go_rest_test:go_rest_pwd@/go_rest_test", logger)
+	dao, err := storage.NewSqlDatastore("mysql", "taxi_scout_user:taxi_scout_pwd@/taxi_scout?parseTime=true", logger)
 	defer dao.Close()
 
 	if err != nil {
@@ -33,6 +33,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	r.HandleFunc("/invitation/{token:.+}", server.Invitation)
 	r.HandleFunc("/accounts", server.Accounts)
 	r.HandleFunc("/account/{id:[0-9]+}", server.Account)
 	r.HandleFunc("/accounts/authenticate", server.AccountsAuthenticate)

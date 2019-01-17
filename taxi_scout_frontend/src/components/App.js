@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import {BrowserRouter as Router, Route} from "react-router-dom";
 import Home from "./Home";
+import Invitation from "./Invitation";
 import Account from "./Account";
 import Excursion from "./Excursion";
 import Children from "./Children";
@@ -32,6 +33,7 @@ class App extends Component {
                     */}
 
                     <Route path="/" exact component={Home}/>
+                    <Route path="/invitation/:token" component={Invitation}/>
                     <Route path="/account/" component={Account}/>
                     <Route path="/excursion/" component={Excursion}/>
                     <Route path="/children/" component={Children}/>

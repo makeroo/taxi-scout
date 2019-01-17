@@ -3,6 +3,30 @@ SET SESSION time_zone = "+0:00";
 ALTER DATABASE CHARACTER SET "utf8";
 
 
+CREATE TABLE scout_group (
+  id INTEGER NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+
+  PRIMARY KEY (id)
+);
+
+
+CREATE TABLE role (
+  id INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+
+  PRIMARY KEY (id)
+);
+
+INSERT INTO role (id) VALUES
+-- code    label               description                                            table
+-- ----    -----               -----------                                            -----
+   (1), -- member:             has scouts, can partecipate in excurtion coordination  account_roles
+   (2), -- excursion_manager:  can add new excursion                                  account_roles
+   (3)  -- group_admin:        can edit group info                                    account_roles
+;
+
+
 CREATE TABLE account (
   id INTEGER NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
@@ -11,9 +35,35 @@ CREATE TABLE account (
   password VARCHAR(255) NOT NULL,
   verified_email TINYINT NOT NULL DEFAULT 0,
 
-  -- TODO: contacts
+  address VARCHAR(255) NOT NULL DEFAULT '',
 
   PRIMARY KEY (id)
+);
+
+
+CREATE TABLE account_roles (
+  role_id INT NOT NULL,
+  account_id INT NOT NULL,
+  group_id INT NOT NULL,
+
+  FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
+  FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
+  FOREIGN KEY (group_id) REFERENCES scout_group(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, account_id, group_id)
+);
+
+
+CREATE TABLE invitation (
+  token VARCHAR(255) NOT NULL, -- a random uuid
+  email VARCHAR(255) NOT NULL, -- the email the invitation has been sent to
+  created_on TIMESTAMP NOT NULL,
+  -- expiration date is calculated from created_on + SOME SETTINGS
+
+  group_id INT NOT NULL,
+  account_id INT, -- someone already received the invitation and created an account
+                  -- when the account will be verified this invitation will be removed
+
+  PRIMARY KEY (token)
 );
 
 

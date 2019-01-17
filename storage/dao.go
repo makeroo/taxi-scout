@@ -1,6 +1,8 @@
 package storage
 
 type Datastore interface {
+	QueryInvitationToken (token string) (*Invitation, *Account, error)
+
 	QueryAccounts() ([]*Account, error)
 
 	QueryAccount(id int32) (*Account, error)
@@ -13,3 +15,5 @@ type Datastore interface {
 }
 
 const IdOverflow = "id_overflow"
+
+const UnknownQuery = "unknown_query"

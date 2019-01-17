@@ -4,19 +4,19 @@ import (
 	"database/sql"
 	"errors"
 	"math"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
+
 type SqlDatastore struct {
 	*sql.DB
 	Logger *zap.SugaredLogger
+	InvitationDuration time.Duration
 
-	queryAccounts      *sql.Stmt
-	queryAccount       *sql.Stmt
-	insertAccount      *sql.Stmt
-	accountCredentials *sql.Stmt
+	preparedStatements map[string]*sql.Stmt
 }
 
 func NewSqlDatastore(driver string, dataSourceName string, logger *zap.SugaredLogger) (*SqlDatastore, error) {
@@ -34,27 +34,81 @@ func NewSqlDatastorec(driver string, dataSourceConnection *sql.DB, logger *zap.S
 		return nil, err
 	}
 
-	return &SqlDatastore{dataSourceConnection, logger, nil, nil, nil, nil}, nil
+	// FIXME: trasferirlo in un file di settings
+	return &SqlDatastore{dataSourceConnection, logger, time.Duration(10) * time.Hour, map[string]*sql.Stmt{}}, nil
 }
 
 func (db *SqlDatastore) Close() {
-	if db.queryAccounts != nil {
-		db.queryAccounts.Close()
+	for key, stmt := range db.preparedStatements {
+		//fmt.Println("Key:", key, "Value:", value)
+		err := stmt.Close()
+
+		if err != nil {
+			db.Logger.Warnf("error closing statement: query=%v, error=%v", key, err)
+		}
 	}
-	if db.queryAccount != nil {
-		db.queryAccount.Close()
-	}
-	if db.insertAccount != nil {
-		db.insertAccount.Close()
-	}
-	if db.accountCredentials != nil {
-		db.accountCredentials.Close()
-	}
+
 	db.Close()
 }
 
+func (db *SqlDatastore) QueryInvitationToken (token string) (*Invitation, *Account, error) {
+	stmt, err := db.stmt("fetch_invitation")
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	row := stmt.QueryRow(token)
+
+	var invitationEmail string
+	var invitationCreatedOn time.Time
+	var scoutGroupId int32
+	var scoutGroupName string
+	var accountId sql.NullInt64
+	var accountName sql.NullString
+	var accountAddress sql.NullString
+	var accountVerified sql.NullBool
+
+	err = row.Scan(
+		&invitationEmail, &invitationCreatedOn,
+		&scoutGroupId, &scoutGroupName,
+		&accountId, &accountName, &accountAddress, &accountVerified,
+		)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if accountId.Valid {
+		account := NewAccount()
+		account.Id = int32(accountId.Int64)
+		account.Name = accountName.String
+		account.Email = invitationEmail
+		account.Address = accountAddress.String
+		account.VerifiedEmail = accountVerified.Bool
+
+		return nil, account, nil
+
+	} else {
+		invitation := NewInvitation()
+
+		invitation.Token = token
+		invitation.Email = invitationEmail
+		invitation.Expires = invitationCreatedOn.Add(db.InvitationDuration)
+
+		scoutGroup := NewScoutGroup()
+
+		scoutGroup.Id = scoutGroupId
+		scoutGroup.Name = scoutGroupName
+
+		invitation.ScoutGroup = scoutGroup
+
+		return invitation, nil, nil
+	}
+}
+
 func (db *SqlDatastore) QueryAccounts() ([]*Account, error) {
-	stmt, err := db.stmtQueryAccounts()
+	stmt, err := db.stmt("query_accounts")
 
 	if err != nil {
 		return nil, err
@@ -89,17 +143,13 @@ func (db *SqlDatastore) QueryAccounts() ([]*Account, error) {
 }
 
 func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
-	stmt, err := db.stmtQueryAccount()
+	stmt, err := db.stmt("query_account")
 
 	if err != nil {
 		return nil, err
 	}
 
 	row := stmt.QueryRow(id)
-
-	if err != nil {
-		return nil, err
-	}
 
 	account := new(Account)
 	err = row.Scan(&account.Id, &account.Name, &account.Email)
@@ -112,7 +162,7 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 }
 
 func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, error) {
-	stmt, err := db.stmtInsertAccount()
+	stmt, err := db.stmt("insert_account")
 
 	if err != nil {
 		return 0, err
@@ -138,13 +188,26 @@ func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, e
 	res, err := stmt.Exec(account.Name, account.Email, hashedPassword)
 
 	if err != nil {
-		tx.Rollback()
+		rbErr := tx.Rollback()
+
+		if rbErr != nil {
+			db.Logger.Errorf("rollback failed: error=%v, while-processing-error=%v", rbErr, err)
+		}
+
 		return 0, err
 	}
 
 	id, err := res.LastInsertId()
 
-	tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return 0, err
+	}
 
 	if id > int64(math.MaxInt32) {
 		return 0, errors.New(IdOverflow)
@@ -154,7 +217,7 @@ func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, e
 }
 
 func (db *SqlDatastore) AuthenticateAccount(email string, pwd string) (int32, error) {
-	stmt, err := db.stmtAccountCredentials()
+	stmt, err := db.stmt("account_credentials")
 
 	if err != nil {
 		return 0, err
@@ -185,58 +248,25 @@ func (db *SqlDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd st
 	return nil // TODO
 }
 
-func (db *SqlDatastore) stmtQueryAccounts() (*sql.Stmt, error) {
-	if db.queryAccounts == nil {
-		stmt, err := db.Prepare("SELECT id, name, email FROM account")
+func (db *SqlDatastore) stmt(query string) (*sql.Stmt, error) {
+	stmt, found := db.preparedStatements[query]
+	var err error
+
+	if !found {
+		sqlQuery, found := SqlQueries[query]
+
+		if !found {
+			return nil, errors.New(UnknownQuery) // TODO: error parameter
+		}
+
+		stmt, err = db.Prepare(sqlQuery)
 
 		if err != nil {
 			return nil, err
 		}
 
-		db.queryAccounts = stmt
+		db.preparedStatements[sqlQuery] = stmt
 	}
 
-	return db.queryAccounts, nil
-}
-
-func (db *SqlDatastore) stmtQueryAccount() (*sql.Stmt, error) {
-	if db.queryAccount == nil {
-		stmt, err := db.Prepare("SELECT id, name, email FROM account WHERE id=?")
-
-		if err != nil {
-			return nil, err
-		}
-
-		db.queryAccount = stmt
-	}
-
-	return db.queryAccount, nil
-}
-
-func (db *SqlDatastore) stmtInsertAccount() (*sql.Stmt, error) {
-	if db.insertAccount == nil {
-		stmt, err := db.Prepare("INSERT INTO account (name, email, pwd) VALUES ( ?, ?, ? )")
-
-		if err != nil {
-			return nil, err
-		}
-
-		db.insertAccount = stmt
-	}
-
-	return db.insertAccount, nil
-}
-
-func (db *SqlDatastore) stmtAccountCredentials() (*sql.Stmt, error) {
-	if db.accountCredentials == nil {
-		stmt, err := db.Prepare("SELECT id, pwd FROM account WHERE email = ?")
-
-		if err != nil {
-			return nil, err
-		}
-
-		db.accountCredentials = stmt
-	}
-
-	return db.accountCredentials, nil
+	return stmt, nil
 }
