@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
+	"time"
 )
 
 func (server *RestServer) Invitation(w http.ResponseWriter, r *http.Request) {
@@ -23,31 +24,52 @@ func (server *RestServer) Invitation(w http.ResponseWriter, r *http.Request) {
 
 		invitation, account, err := server.Dao.QueryInvitationToken(token)
 
+		var r map[string]interface{}
+
 		switch {
 		case err == sql.ErrNoRows:
 			w.WriteHeader(404)
-			return
+
+			r = map[string]interface{}{
+				"error": NotFound,
+			}
+
 		case err != nil:
 			w.WriteHeader(500)
 			server.Logger.Errorf("unexpected error: error=%v", err)
-			return
+
+			r = map[string]interface{}{
+				"error": ServerError,
+			}
+
+		default:
+
+			if invitation != nil {
+				if invitation.Expires.Before(time.Now()) {
+					w.WriteHeader(410)
+
+					r = map[string]interface{}{
+						"error": Expired,
+					}
+				} else {
+					r = map[string]interface{}{
+						"type":       "invitation",
+						"invitation": invitation,
+					}
+				}
+			} else if account != nil {
+				r = map[string]interface{}{
+					"type":    "account",
+					"account": account,
+				}
+			}
 		}
 
-		var r map[string]interface{}
-
-		if invitation != nil {
-			r = map[string]interface{}{
-				"type": "invitation",
-				"invitation": invitation,
-			}
-		} else if account != nil {
-			r = map[string]interface{}{
-				"type": "account",
-				"account": account,
-			}
-		}
 		res, err := json.Marshal(r)
+
 		if err != nil {
+			server.Logger.Errorf("json marshalling failed: result=%v, error=%v", r, err)
+
 			w.WriteHeader(500)
 			return
 		}
