@@ -185,7 +185,7 @@ func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, e
 	}
 
 	stmt = tx.Stmt(stmt)
-	res, err := stmt.Exec(account.Name, account.Email, hashedPassword)
+	res, err := stmt.Exec(account.Name, account.Email, hashedPassword, account.Address)
 
 	if err != nil {
 		rbErr := tx.Rollback()

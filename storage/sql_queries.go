@@ -13,6 +13,6 @@ LEFT JOIN account a ON i.account_id = a.id
 
 	"query_accounts": "SELECT id, name, email FROM account",
 	"query_account": "SELECT id, name, email FROM account WHERE id = ?",
-	"insert_account": "INSERT INTO account (name, email, pwd) VALUES ( ?, ?, ? )",
-	"account_credentials": "SELECT id, pwd FROM account WHERE email = ?",
+	"insert_account": "INSERT INTO account (name, email, password, address) VALUES ( ?, ?, ?, ? )",
+	"account_credentials": "SELECT id, password FROM account WHERE email = ?",
 }

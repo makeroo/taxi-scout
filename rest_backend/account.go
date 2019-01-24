@@ -13,6 +13,8 @@ import (
 func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		w.Header().Add("Content-Type", "application/json")
+
 		accounts, err := server.Dao.QueryAccounts()
 
 		if err != nil {
@@ -29,6 +31,8 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 		w.Write(res)
 
 	case http.MethodPost:
+		w.Header().Add("Content-Type", "application/json")
+
 		decoder := json.NewDecoder(r.Body)
 
 		account := storage.NewAccountWithCredentials()
@@ -62,6 +66,8 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
+		w.Header().Add("Content-Type", "application/json")
+
 		vars := mux.Vars(r)
 		id, err := strconv.Atoi(vars["id"])
 
@@ -99,6 +105,8 @@ type AccountAuthenticatePayload struct {
 func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
+		w.Header().Add("Content-Type", "application/json")
+
 		decoder := json.NewDecoder(r.Body)
 
 		credentials := AccountAuthenticatePayload{"", ""}
@@ -121,6 +129,17 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 			)
 			w.WriteHeader(401)
 			return
+		}
+
+		if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountId); err == nil {
+			cookie := &http.Cookie{
+				Name:  "_ts_u",
+				Value: encoded,
+				Path:  "/",
+				Secure: true,
+				HttpOnly: true,
+			}
+			http.SetCookie(w, cookie)
 		}
 
 		bytes, err := json.Marshal(map[string]int32{"id": accountId})

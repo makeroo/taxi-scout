@@ -8,4 +8,5 @@ import (
 type RestServer struct {
 	Dao    storage.Datastore
 	Logger *zap.SugaredLogger
+	Configuration Configuration
 }

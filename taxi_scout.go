@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/gorilla/securecookie"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -27,9 +28,20 @@ func main() {
 		panic(err.Error())
 	}
 
+	// Hash keys should be at least 32 bytes long
+	hashKey := []byte("0123456789 123456789 123456789 1") // FIXME: read from protected file
+	// Block keys should be 16 bytes (AES-128) or 32 bytes (AES-256) long.
+	// Shorter keys may weaken the encryption used.
+	blockKey := []byte("0123456789 123456789 123456789 1") // FIXME: read from protected file
+
+	secureCookies := securecookie.New(hashKey, blockKey)
+
 	server := &rest_backend.RestServer{
 		Dao:    dao,
 		Logger: logger,
+		Configuration: rest_backend.Configuration{
+			SecureCookies: secureCookies,
+		},
 	}
 
 	r := mux.NewRouter()
