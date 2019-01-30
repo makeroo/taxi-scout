@@ -11,14 +11,13 @@ CREATE TABLE scout_group (
 );
 
 
-CREATE TABLE role (
+CREATE TABLE permission (
   id INTEGER NOT NULL,
-  name VARCHAR(255) NOT NULL,
 
   PRIMARY KEY (id)
 );
 
-INSERT INTO role (id) VALUES
+INSERT INTO permission (id) VALUES
 -- code    label               description                                            table
 -- ----    -----               -----------                                            -----
    (1), -- member:             has scouts, can partecipate in excurtion coordination  account_roles
@@ -29,11 +28,10 @@ INSERT INTO role (id) VALUES
 
 CREATE TABLE account (
   id INTEGER NOT NULL AUTO_INCREMENT,
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL DEFAULT '',
 
   email VARCHAR(255) NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  verified_email TINYINT NOT NULL DEFAULT 0,
+  password VARCHAR(255) NOT NULL DEFAULT '',
 
   address VARCHAR(255) NOT NULL DEFAULT '',
 
@@ -41,15 +39,15 @@ CREATE TABLE account (
 );
 
 
-CREATE TABLE account_roles (
-  role_id INT NOT NULL,
+CREATE TABLE account_grant (
+  permission_id INT NOT NULL,
   account_id INT NOT NULL,
   group_id INT NOT NULL,
 
-  FOREIGN KEY (role_id) REFERENCES role(id) ON DELETE CASCADE,
+  FOREIGN KEY (permission_id) REFERENCES permission(id) ON DELETE CASCADE,
   FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE,
   FOREIGN KEY (group_id) REFERENCES scout_group(id) ON DELETE CASCADE,
-  PRIMARY KEY (role_id, account_id, group_id)
+  PRIMARY KEY (permission_id, account_id, group_id)
 );
 
 
@@ -60,8 +58,6 @@ CREATE TABLE invitation (
   -- expiration date is calculated from created_on + SOME SETTINGS
 
   group_id INT NOT NULL,
-  account_id INT, -- someone already received the invitation and created an account
-                  -- when the account will be verified this invitation will be removed
 
   PRIMARY KEY (token)
 );
@@ -107,7 +103,7 @@ CREATE TABLE scout_activity (
 );
 
 
-CREATE TABLE role (
+CREATE TABLE tutor_activity (
   activity_id INTEGER NOT NULL,
   account_id INTEGER NOT NULL,
 

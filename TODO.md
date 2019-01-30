@@ -1,4 +1,5 @@
-
+componentDidMount is called just once or everytime it is rendered?
+ or: just the first time the router "activate" it or everytime it is "activated"?
 
 
 when role changes to taxi, hide scouts in pickup summary?

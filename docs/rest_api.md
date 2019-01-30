@@ -1,3 +1,5 @@
+# Taxi Scout REST API
+
 Base url: `/api/v1/`
 
 ## Types
@@ -36,82 +38,128 @@ Representation: OBJECT
 * id: INT
 * name: STRING
 * email: EMAIL
-* verified_email: BOOL
 * address: STRING
 
 
 ## Methods
 
-### Invitations
+### Accounts
 
-**URL**: `/invitations`
-
-**Method**: POST
-
-Create a new invitation.
-
-Required role: `excursion_manager`
-
-*Request*:
-
-* email: EMAIL
-
-  Email address of invitation receiver.
-
-* scout_group: INT
-
-  Scout group to be joined.
-
-*Response*:
-
-* token: UUID
-
-  New inviation identifier.
-
-* expires: DATETIME
-
-
-**URL**: `/invitation/:token`
+**URL**: `/accounts`
 
 **Method**: GET
 
-Retrieve invitation details.
+Query accounts of a Scout Group.
 
-Public method.
+Required permission: `member`
 
-*Response*:
+**Query parameters**:
 
-* type: ENUM 'account', 'invitation'
+* group INT
 
-* invitation: INVITATION
+  A scout group.
 
-  If type is 'invitation'
+*Response*: []ACCOUNT
 
-* account: ACCOUNT
+**Errors**:
 
-  If type is 'account'
+* 400
+
+  Group parameter not found or not an int.
+
+* 401
+
+  Not authorized/authenticated.
+
+* 403
+
+  Forbidden: required permission is missing.
 
 
-Errors:
+**Method**: POST
 
-* 404
+Create an account from an invitation and grant member permission.
 
+Rquired permission: public
+
+**Request**:
+
+* invitation: UUID
+
+  An invitation token.
+
+**Response**:
+
+* id: INT
+
+  The account resulted from accepting the invitation.
+
+* new_account: BOOL
+
+  Whether a new account has been created or not.
+
+* authenticated: BOOL
+
+  Whether the invitation token has been used or not.
+
+When the invitation token is used, a cookie named _ts_u is used. This cookie is used as authentication token
+for next calls.
+
+When cookie _ts_u is submitted, even if the invitation token is not found or expired, the call succeded
+returning the account id of the logged user and new_account and authenticated both set to false.
+
+**Errors**:
+
+* 400
+
+  Can't decode payload, missing invitation key or not an UUID
+
+* 404 Invitation not found
   ```
   {
      error: 'not_found'
   }
   ```
 
- * 410
+* 410 Invitation expired
+  ```
+  {
+     error: 'expired'
+  }
+  ```
 
-   ```
-   {
-      error: 'expired'
-   }
-   ```
+**URL**: /account/:id
+
+**Method**: GET
+
+Query a specific account.
+
+*Response*: ACCOUNT
+
+Permission: a user can query its own account record.
+
+**Errors**:
+
+* 400
+
+  Malformed :id parameter.
+
+* 401
+
+  Not authenticated.
+
+* 403
+
+  Forbidden.
 
 
-/accounts
+
+
+
+TODO FROM HERE
+
+
+
 POST
 request:
 {
@@ -147,17 +195,6 @@ pwd: STRING
 
 Response: same as /account/:id
 
-/account/:id
-GET
-
-Response:
-{
-id: INT
-name: STRING
-email: STRING
-verified_email: BOOL
-address: STRING
-}
 
 /api/v1/account/:id/scouts
 GET
@@ -221,3 +258,35 @@ COORDINATION:
     }
   ]
 }
+
+
+
+
+
+### Invitations
+
+**URL**: `/invitations`
+
+**Method**: POST
+
+Create a new invitation.
+
+Required role: `excursion_manager`
+
+*Request*:
+
+* email: EMAIL
+
+  Email address of invitation receiver.
+
+* scout_group: INT
+
+  Scout group to be joined.
+
+*Response*:
+
+* token: UUID
+
+  New inviation identifier.
+
+* expires: DATETIME

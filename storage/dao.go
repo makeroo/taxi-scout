@@ -1,19 +1,23 @@
 package storage
 
-type Datastore interface {
-	QueryInvitationToken (token string) (*Invitation, *Account, error)
+import "github.com/kataras/iris/core/errors"
 
-	QueryAccounts() ([]*Account, error)
+type Datastore interface {
+	CheckPermission (userId int32, groupId int32, permId int32) error;
+
+	QueryInvitationToken (token string) (*Account, bool, error)
+
+	QueryAccounts(group int32) ([]*Account, error)
 
 	QueryAccount(id int32) (*Account, error)
 
-	InsertAccount(*AccountWithCredentials) (int32, error)
+//	InsertAccount(*AccountWithCredentials) (int32, error)
 
 	AuthenticateAccount(email string, pwd string) (int32, error)
 
 	UpdateAccountPassword(id int32, oldPwd string, newPwd string) error
 }
 
-const IdOverflow = "id_overflow"
+var IdOverflow = errors.New("id_overflow")
 
-const UnknownQuery = "unknown_query"
+var UnknownQuery = errors.New("unknown_query")

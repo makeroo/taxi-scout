@@ -1,17 +1,14 @@
 package rest_backend
 
 import (
-	"database/sql"
-	"encoding/json"
-	"github.com/gorilla/mux"
 	"net/http"
-	"time"
 )
 
 func (server *RestServer) Invitation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 
 	switch r.Method {
+	/*
 	case http.MethodGet:
 		result := map[string]interface{}{}
 
@@ -91,7 +88,7 @@ func (server *RestServer) Invitation(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			server.Logger.Errorf("unexpected error while writing response: error=%v", err)
 		}
-
+*/
 /*	case http.MethodPost:
 		decoder := json.NewDecoder(r.Body)
 

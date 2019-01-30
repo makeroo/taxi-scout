@@ -1,6 +1,7 @@
 import {INVITATION_FETCH_DATA_SUCCESS, INVITATION_HAS_ERRORED, INVITATION_IS_LOADING} from "../constants/action-types";
 import {BASE_URL} from "../constants/rest_api";
 import {SERVER_ERROR, SERVICE_NOT_AVAILABLE} from "../constants/errors";
+import {accountFetchDataSuccess} from "./accounts";
 
 
 export function invitationIsLoading () {
@@ -45,7 +46,15 @@ export function checkToken(token) {
                 if ('error' in invitation)
                     throw invitation;
 
-                dispatch(invitationFetchDataSuccess(invitation));
+                console.log('invitation resp', invitation);
+                if (invitation.type === 'invitation') {
+                    dispatch(invitationFetchDataSuccess(invitation.invitation));
+                } else if (invitation.type === 'account') {
+                    dispatch(accountFetchDataSuccess(invitation.account));
+                    dispatch(invitationFetchDataSuccess(null));
+                } else {
+                    throw { error: SERVER_ERROR };
+                }
 
                 return invitation;
             })

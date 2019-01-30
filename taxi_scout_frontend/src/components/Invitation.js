@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {connect} from "react-redux";
+import {Redirect} from "react-router-dom";
 import { checkToken } from "../actions/invitations";
 import {EXPIRED, NOT_FOUND, SERVICE_NOT_AVAILABLE} from "../constants/errors";
 
@@ -7,6 +8,7 @@ import {EXPIRED, NOT_FOUND, SERVICE_NOT_AVAILABLE} from "../constants/errors";
 const mapStateToProps = (state /*, props*/) => {
     return {
         invitation: state.invitation,
+        account: state.account,
     };
 };
 
@@ -26,13 +28,13 @@ class Invitation extends Component {
     }
 
     render() {
-        console.log('invitation', this.props.invitation);
+        const invitation = this.props.invitation;
 
-        if (this.props.invitation.loading) {
+        if (invitation.loading) {
             return <p>Loading...</p>;
         }
 
-        const error = this.props.invitation.error;
+        const error = invitation.error;
 
         if (error) {
             if (error.error === SERVICE_NOT_AVAILABLE) {
@@ -62,6 +64,33 @@ class Invitation extends Component {
                             Please contact your scout group coordinator to receive another one.
                         </p>
                     </div>
+                );
+            }
+
+            return (
+                <div>
+                    <p>Unexpected error.</p>
+                    <p>
+                        Something went wrong. Please contact system administrator.
+                    </p>
+                </div>
+            );
+        }
+
+        if (invitation.data === null) {
+            const account = this.props.account;
+
+            if (account.verified_email) {
+                return (
+                    <Redirect to={{
+                        pathname: '/home',
+                    }} />
+                );
+            } else {
+                return (
+                    <Redirect to={{
+                        pathname: '/account/'
+                    }}/>
                 );
             }
         }

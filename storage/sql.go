@@ -2,7 +2,8 @@ package storage
 
 import (
 	"database/sql"
-	"errors"
+	sql2 "github.com/makeroo/taxi_scout/sql"
+	"github.com/makeroo/taxi_scout/ts_errors"
 	"math"
 	"time"
 
@@ -51,11 +52,88 @@ func (db *SqlDatastore) Close() {
 	db.Close()
 }
 
-func (db *SqlDatastore) QueryInvitationToken (token string) (*Invitation, *Account, error) {
-	stmt, err := db.stmt("fetch_invitation")
+func (db *SqlDatastore) rollback(tx *sql.Tx) {
+	err := tx.Rollback()
 
 	if err != nil {
-		return nil, nil, err
+		db.Logger.Errorf("rollback failed: error=%v", err)
+	}
+}
+
+func (db *SqlDatastore) commit(tx *sql.Tx) error {
+	err := tx.Commit()
+
+	if err != nil {
+		db.Logger.Errorf("commit failed: error=%v", err)
+
+		db.rollback(tx)
+
+		return err
+	}
+
+	return nil
+}
+
+func (db *SqlDatastore) execStmt (stmtName string, tx *sql.Tx, val ...interface{}) error {
+	stmt, err := db.stmt(stmtName, tx)
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	_, err = stmt.Exec(val...)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	return nil
+}
+
+func (db *SqlDatastore) CheckPermission (userId int32, groupId int32, permId int32) error {
+	return db.checkPermission(userId, groupId, permId, nil)
+}
+
+func (db *SqlDatastore) checkPermission (userId int32, groupId int32, permId int32, tx *sql.Tx) error {
+	stmt, err := db.stmt("check_permission", tx)
+
+	if err != nil {
+		return err
+	}
+
+	row := stmt.QueryRow(userId, groupId, permId)
+
+	var count int64
+
+	err = row.Scan(&count)
+
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return ts_errors.Forbidden
+	}
+
+	return nil
+}
+
+func (db *SqlDatastore) QueryInvitationToken (token string) (*Account, bool, error) {
+	tx, err := db.Begin()
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	stmt, err := db.stmt("fetch_invitation", tx)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return nil, false, err
 	}
 
 	row := stmt.QueryRow(token)
@@ -63,58 +141,117 @@ func (db *SqlDatastore) QueryInvitationToken (token string) (*Invitation, *Accou
 	var invitationEmail string
 	var invitationCreatedOn time.Time
 	var scoutGroupId int32
-	var scoutGroupName string
 	var accountId sql.NullInt64
 	var accountName sql.NullString
 	var accountAddress sql.NullString
-	var accountVerified sql.NullBool
 
 	err = row.Scan(
 		&invitationEmail, &invitationCreatedOn,
-		&scoutGroupId, &scoutGroupName,
-		&accountId, &accountName, &accountAddress, &accountVerified,
+		&scoutGroupId,
+		&accountId, &accountName, &accountAddress,
 		)
 
 	if err != nil {
-		return nil, nil, err
+		db.rollback(tx)
+
+		return nil, false, err
 	}
 
+	account := new(Account)
+	var found bool
+
 	if accountId.Valid {
-		account := NewAccount()
 		account.Id = int32(accountId.Int64)
 		account.Name = accountName.String
 		account.Email = invitationEmail
 		account.Address = accountAddress.String
-		account.VerifiedEmail = accountVerified.Bool
 
-		return nil, account, nil
+		found = true
 
 	} else {
-		invitation := NewInvitation()
+		invitationExpires := invitationCreatedOn.Add(db.InvitationDuration)
 
-		invitation.Token = token
-		invitation.Email = invitationEmail
-		invitation.Expires = invitationCreatedOn.Add(db.InvitationDuration)
+		if invitationExpires.Before(time.Now()) {
+			err = db.execStmt("delete_invitation", tx, token)
 
-		scoutGroup := NewScoutGroup()
+			if err != nil {
+				return nil, false, err
+			}
 
-		scoutGroup.Id = scoutGroupId
-		scoutGroup.Name = scoutGroupName
+			err = db.commit(tx)
 
-		invitation.ScoutGroup = scoutGroup
+			if err == nil {
+				err = ts_errors.Expired
+			}
 
-		return invitation, nil, nil
+			return nil, false, err
+		}
+
+		stmt, err = db.stmt("create_account_from_invitation", tx)
+
+		if err != nil {
+			db.rollback(tx)
+			return nil, false, err
+		}
+
+		res, err := stmt.Exec(token)
+
+		if err != nil {
+			db.rollback(tx)
+			return nil, false, err
+		}
+
+		id, err := res.LastInsertId()
+
+		if err != nil {
+			db.rollback(tx)
+
+			return nil, false, err
+		}
+
+		if id > int64(math.MaxInt32) {
+			db.rollback(tx)
+
+			return nil, false, IdOverflow
+		}
+
+		account.Id = int32(id)
+		account.Email = invitationEmail
+
+		found = false
 	}
+
+	err = db.checkPermission(account.Id, scoutGroupId, sql2.PermissionMember, tx)
+
+	if err == ts_errors.Forbidden {
+		err = db.execStmt("grant", tx, sql2.PermissionMember, account.Id, scoutGroupId)
+	} else if err != nil {
+		db.rollback(tx)
+	}
+
+	if err != nil {
+		return nil, false, err
+	}
+
+	err = db.execStmt("delete_invitation", tx, token)
+
+	if err != nil {
+		db.Logger.Errorf("delete invitation failed: error=%v", err)
+	} else {
+		err = db.commit(tx)
+	}
+
+	return account, found, err
 }
 
-func (db *SqlDatastore) QueryAccounts() ([]*Account, error) {
-	stmt, err := db.stmt("query_accounts")
+func (db *SqlDatastore) QueryAccounts(group int32) ([]*Account, error) {
+	stmt, err := db.stmt("query_accounts", nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query()
+	rows, err := stmt.Query(group)
 
 	if err != nil {
 		return nil, err
@@ -126,7 +263,7 @@ func (db *SqlDatastore) QueryAccounts() ([]*Account, error) {
 
 	for rows.Next() {
 		account := new(Account)
-		err := rows.Scan(&account.Id, &account.Name, &account.Email)
+		err := rows.Scan(&account.Id, &account.Name, &account.Email, &account.Address)
 
 		if err != nil {
 			return nil, err
@@ -143,7 +280,7 @@ func (db *SqlDatastore) QueryAccounts() ([]*Account, error) {
 }
 
 func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
-	stmt, err := db.stmt("query_account")
+	stmt, err := db.stmt("query_account", nil)
 
 	if err != nil {
 		return nil, err
@@ -152,7 +289,7 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 	row := stmt.QueryRow(id)
 
 	account := new(Account)
-	err = row.Scan(&account.Id, &account.Name, &account.Email)
+	err = row.Scan(&account.Id, &account.Name, &account.Email, &account.Address)
 
 	if err != nil {
 		return nil, err
@@ -161,6 +298,7 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 	return account, nil
 }
 
+/*
 func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, error) {
 	stmt, err := db.stmt("insert_account")
 
@@ -210,14 +348,14 @@ func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, e
 	}
 
 	if id > int64(math.MaxInt32) {
-		return 0, errors.New(IdOverflow)
+		return 0, IdOverflow
 	}
 
 	return int32(id), err
 }
-
+*/
 func (db *SqlDatastore) AuthenticateAccount(email string, pwd string) (int32, error) {
-	stmt, err := db.stmt("account_credentials")
+	stmt, err := db.stmt("account_credentials", nil)
 
 	if err != nil {
 		return 0, err
@@ -248,7 +386,7 @@ func (db *SqlDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd st
 	return nil // TODO
 }
 
-func (db *SqlDatastore) stmt(query string) (*sql.Stmt, error) {
+func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
 	stmt, found := db.preparedStatements[query]
 	var err error
 
@@ -256,7 +394,7 @@ func (db *SqlDatastore) stmt(query string) (*sql.Stmt, error) {
 		sqlQuery, found := SqlQueries[query]
 
 		if !found {
-			return nil, errors.New(UnknownQuery) // TODO: error parameter
+			return nil, UnknownQuery // TODO: error parameter
 		}
 
 		stmt, err = db.Prepare(sqlQuery)
@@ -266,6 +404,10 @@ func (db *SqlDatastore) stmt(query string) (*sql.Stmt, error) {
 		}
 
 		db.preparedStatements[sqlQuery] = stmt
+	}
+
+	if tx != nil {
+		stmt = tx.Stmt(stmt)
 	}
 
 	return stmt, nil

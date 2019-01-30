@@ -45,7 +45,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/invitation/{token:.+}", rest_backend.DisableBrowserCache(server.Invitation))
+//	r.HandleFunc("/invitation/{token:.+}", rest_backend.DisableBrowserCache(server.Invitation))
 	r.HandleFunc("/accounts", rest_backend.DisableBrowserCache(server.Accounts))
 	r.HandleFunc("/account/{id:[0-9]+}", rest_backend.DisableBrowserCache(server.Account))
 	r.HandleFunc("/accounts/authenticate", rest_backend.DisableBrowserCache(server.AccountsAuthenticate))
