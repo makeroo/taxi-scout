@@ -4,7 +4,7 @@ import {connect} from "react-redux";
 
 const mapStateToProps = (state) => {
     return {
-
+        account: state.account,
     };
 };
 
@@ -37,6 +37,20 @@ class Account extends Component {
     }
 
     render() {
+        const account = this.props.account;
+
+        if (account.loading) {
+            return <p>Loading...</p>;
+        }
+
+        if (account.error) {
+            return <p>Error... TODO</p>;
+        }
+
+        if (account.data === null) {
+            return <p>....</p>;
+        }
+
         return (
             <div className="Account">
                 <div className="container">
@@ -48,7 +62,7 @@ class Account extends Component {
                                    readOnly
                                    className="form-control-plaintext"
                                    id="email"
-                                   value="email@example.com"/>
+                                   value={this.props.account.email}/>
                         </div>
                         <div className="form-group">
                             <label htmlFor="fullName">Nome</label>
@@ -57,6 +71,7 @@ class Account extends Component {
                                    id="fullName"
                                    placeholder="Nome e cognome"
                                    aria-describedby="fullNameHelpBlock"
+                                   value={this.props.account.name}
                             />
                             <small id="fullNameHelpBlock" className="form-text text-muted">
                                 Qualcosa che aiuti gli altri ad identificarti: nome e cognome,
@@ -71,6 +86,7 @@ class Account extends Component {
                                    id="address"
                                    placeholder="Indirizzo approssimativo"
                                    aria-describedby="addressHelpBlock"
+                                   value={this.props.account.address}
                             />
                             <small id="addressHelpBlock" className="form-text text-muted">
                                 È sufficiente una indicazione vaga: comune, frazione, quartiere.

@@ -4,12 +4,7 @@ export function account(
     state = {
         error: null,
         loading: false,
-        data: null /*{
-            id: 5,
-            name: 'Simone',
-            email: 'makeroo@gmail.com',
-            verified_email: 1,
-        }*/,
+        data: null,
     },
     action
 ) {

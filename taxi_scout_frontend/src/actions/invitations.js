@@ -1,7 +1,6 @@
 import {INVITATION_FETCH_DATA_SUCCESS, INVITATION_HAS_ERRORED, INVITATION_IS_LOADING} from "../constants/action-types";
 import {BASE_URL} from "../constants/rest_api";
 import {SERVER_ERROR, SERVICE_NOT_AVAILABLE} from "../constants/errors";
-import {accountFetchDataSuccess} from "./accounts";
 
 
 export function invitationIsLoading () {
@@ -26,11 +25,16 @@ export function invitationFetchDataSuccess (invitation) {
     }
 }
 
+
 export function checkToken(token) {
     return (dispatch) => {
         dispatch(invitationIsLoading());
 
-        return fetch(BASE_URL + '/invitation/' + token)
+        return fetch(BASE_URL + '/accounts', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: JSON.stringify({ invitation: token })
+        })
             .then((response) => {
                 switch (response.status) {
                     case 502:
@@ -47,19 +51,13 @@ export function checkToken(token) {
                     throw invitation;
 
                 console.log('invitation resp', invitation);
-                if (invitation.type === 'invitation') {
-                    dispatch(invitationFetchDataSuccess(invitation.invitation));
-                } else if (invitation.type === 'account') {
-                    dispatch(accountFetchDataSuccess(invitation.account));
-                    dispatch(invitationFetchDataSuccess(null));
-                } else {
-                    throw { error: SERVER_ERROR };
-                }
+
+                dispatch(invitationFetchDataSuccess(invitation));
 
                 return invitation;
             })
             .catch((error) => {
-                if (typeof error !== 'object' || typeof error.error !== 'string') {
+                if (!error || typeof error.error !== 'string') {
                     console.log('ops', error);
 
                     error = {

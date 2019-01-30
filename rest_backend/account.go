@@ -59,7 +59,7 @@ func (server *RestServer) setUserCookie (accountId int32, w http.ResponseWriter)
 			Name:  "_ts_u",
 			Value: encoded,
 			Path:  "/",
-			Secure: true,
+			Secure: false, // TODO: configurabile
 			HttpOnly: true,
 		}
 
@@ -236,7 +236,7 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 			default:
 				if t == gsql.ErrNoRows {
-					server.writeResponse(404, ts_errors.NotFound.Error(), w)
+					server.writeResponse(404, ts_errors.NotFound, w)
 				} else {
 					server.Logger.Errorw("account creation failed",
 						"err", err,

@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import {connect} from "react-redux";
-import {Redirect} from "react-router-dom";
+import {Link} from "react-router-dom";
 import { checkToken } from "../actions/invitations";
 import {EXPIRED, NOT_FOUND, SERVICE_NOT_AVAILABLE} from "../constants/errors";
 
@@ -50,7 +50,7 @@ class Invitation extends Component {
                 return (
                     <div>
                         <p>Invitation not found.</p>
-                        <p>If you completed registration and verified the email then try to login.</p>
+                        <p>If you completed registration then try to <Link to="/login/">login</Link>.</p>
                         <p>Otherwise please ask your scout group coordinator to send you another invitation.</p>
                     </div>
                 );
@@ -60,9 +60,8 @@ class Invitation extends Component {
                 return (
                     <div>
                         <p>Your invitation expired.</p>
-                        <p>
-                            Please contact your scout group coordinator to receive another one.
-                        </p>
+                        <p>Please contact your scout group coordinator to receive another one.</p>
+                        <p>If you have a valid account then try to <Link to="/login/">login</Link>.</p>
                     </div>
                 );
             }
@@ -70,38 +69,45 @@ class Invitation extends Component {
             return (
                 <div>
                     <p>Unexpected error.</p>
-                    <p>
-                        Something went wrong. Please contact system administrator.
-                    </p>
+                    <p>Something went wrong. Sometimes just reloading the page resolves the issue. If the problem
+                        persists then please contact system administrator.</p>
                 </div>
             );
         }
 
         if (invitation.data === null) {
-            const account = this.props.account;
+            return <p>Please, wait...</p>;
+        }
 
-            if (account.verified_email) {
+        if (invitation.data.authenticated) {
+            if (invitation.data.new_account) {
                 return (
-                    <Redirect to={{
-                        pathname: '/home',
-                    }} />
+                    <div>
+                        <p>Wellcome to Taxi Scout!</p>
+                        <p>You successfully received an invitation and an account has been created.</p>
+                        <p>Next steps:
+                            <ul>
+                                <li>complete your profile: visit the <Link to="/account/">account page</Link></li>
+                                <li>start coordinating with the other users in the group for the next program activity.</li>
+                            </ul>
+                        </p>
+                    </div>
                 );
             } else {
                 return (
-                    <Redirect to={{
-                        pathname: '/account/'
-                    }}/>
+                    <div>
+                        <p>Congratulations! You successfully joined another group.</p>
+                        <p><Link to="/">Back to the homepage</Link></p>
+                    </div>
                 );
             }
+        } else {
+            return (
+                <div>
+                    <p>The invitation has been already processed. Please go to the <Link to="/">homepage</Link> and update your bookmarks.</p>
+                </div>
+            );
         }
-
-        return (
-            <div>
-                TODO: complete registration form
-                or edit profile until email is validated
-                or redirect to Home if profile is valid
-            </div>
-        );
     }
 }
 
