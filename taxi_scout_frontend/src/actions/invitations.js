@@ -50,7 +50,7 @@ export function checkToken(token) {
                 if ('error' in invitation)
                     throw invitation;
 
-                console.log('invitation resp', invitation);
+                //console.log('invitation resp', invitation);
 
                 dispatch(invitationFetchDataSuccess(invitation));
 

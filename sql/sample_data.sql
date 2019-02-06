@@ -19,17 +19,17 @@ INSERT INTO account_grant (permission_id, account_id, group_id) VALUES
   (1, 6, 2),
   (1, 7, 2);
 
-INSERT INTO scout (id, name) VALUES
-  (1, 'Goso'),
-  (2, 'Gosa'),
-  (3, 'Sisto'),
-  (4, 'Noso'),
-  (5, 'Nosa'),
-  (6, 'Laso'),
-  (7, 'Lasa'),
-  (8, 'Moso'),
-  (9, 'Mosa'),
-  (10, 'Mose');
+INSERT INTO scout (id, name, group_id) VALUES
+  (1, 'Goso', 1),
+  (2, 'Gosa', 1),
+  (3, 'Sisto', 1),
+  (4, 'Noso', 1),
+  (5, 'Nosa', 1),
+  (6, 'Laso', 1),
+  (7, 'Lasa', 1),
+  (8, 'Moso', 1),
+  (9, 'Mosa', 1),
+  (10, 'Mose', 1);
 
 INSERT INTO tutor_scout (tutor_id, scout_id) VALUES
   (1, 1),

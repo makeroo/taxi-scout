@@ -134,6 +134,9 @@ returning the account id of the logged user and new_account and authenticated bo
 
 Query a specific account.
 
+*Request*:
+* id: the string "me" or an account ID
+
 *Response*: ACCOUNT
 
 Permission: a user can query its own account record.
@@ -152,6 +155,18 @@ Permission: a user can query its own account record.
 
   Forbidden.
 
+
+**URL**: /account/:id/groups
+
+**Method**: GET
+
+*Response*: []SCOUT_GROUP
+
+**URL**: /account/:id/group/:id/scouts
+
+**Method**: GET
+
+*Response*: []SCOUT
 
 
 

@@ -2,7 +2,6 @@ package storage
 
 import (
 	"database/sql"
-	sql2 "github.com/makeroo/taxi_scout/sql"
 	"github.com/makeroo/taxi_scout/ts_errors"
 	"math"
 	"time"
@@ -221,10 +220,10 @@ func (db *SqlDatastore) QueryInvitationToken (token string) (*Account, bool, err
 		found = false
 	}
 
-	err = db.checkPermission(account.Id, scoutGroupId, sql2.PermissionMember, tx)
+	err = db.checkPermission(account.Id, scoutGroupId, PermissionMember, tx)
 
 	if err == ts_errors.Forbidden {
-		err = db.execStmt("grant", tx, sql2.PermissionMember, account.Id, scoutGroupId)
+		err = db.execStmt("grant", tx, PermissionMember, account.Id, scoutGroupId)
 	} else if err != nil {
 		db.rollback(tx)
 	}
@@ -384,6 +383,76 @@ func (db *SqlDatastore) AuthenticateAccount(email string, pwd string) (int32, er
 
 func (db *SqlDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd string) error {
 	return nil // TODO
+}
+
+func (db *SqlDatastore) AccountGroups(accountId int32) ([]*ScoutGroup, error) {
+	stmt, err := db.stmt("account_groups", nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(accountId, PermissionMember)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	groups := make([]*ScoutGroup, 0)
+
+	for rows.Next() {
+		group := new(ScoutGroup)
+		err := rows.Scan(&group.Id, &group.Name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		groups = append(groups, group)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return groups, nil
+}
+
+func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
+	stmt, err := db.stmt("account_scouts", nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := stmt.Query(accountId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	scouts := make([]*Scout, 0)
+
+	for rows.Next() {
+		scout := new(Scout)
+		err := rows.Scan(&scout.Id, &scout.Name)
+
+		if err != nil {
+			return nil, err
+		}
+
+		scouts = append(scouts, scout)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return scouts, nil
 }
 
 func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {

@@ -16,6 +16,10 @@ type Datastore interface {
 	AuthenticateAccount(email string, pwd string) (int32, error)
 
 	UpdateAccountPassword(id int32, oldPwd string, newPwd string) error
+
+	AccountGroups(accountId int32) ([]*ScoutGroup, error)
+
+	AccountScouts(accountId int32) ([]*Scout, error)
 }
 
 var IdOverflow = errors.New("id_overflow")

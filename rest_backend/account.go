@@ -4,91 +4,15 @@ import (
 	gsql "database/sql"
 	"encoding/json"
 	"github.com/gorilla/mux"
-	"github.com/makeroo/taxi_scout/sql"
 	"github.com/makeroo/taxi_scout/storage"
 	"github.com/makeroo/taxi_scout/ts_errors"
 	"net/http"
 	"strconv"
 )
 
+
 type InvitationToken struct {
 	Token string `json:"invitation"`
-}
-
-func (server *RestServer) checkUserIdCookie (r *http.Request) (int32, error) {
-	cookie, err := r.Cookie("_ts_u")
-
-	if err == http.ErrNoCookie {
-		return 0, ts_errors.NotAuthorized
-	}
-
-	if err != nil {
-		server.Logger.Debugw("failed at reading cookies",
-			"err", err)
-		return 0, ts_errors.BadRequest
-	}
-
-	var userId int32
-
-	err = server.Configuration.SecureCookies.Decode("_ts_u", cookie.Value, &userId)
-
-	if err != nil {
-		server.Logger.Debugw("cookie decoding failed",
-			"err", err)
-
-		err = ts_errors.BadRequest
-	}
-
-	return userId, err
-}
-
-func (server *RestServer) checkUserCookie (r *http.Request) (*storage.Account, error) {
-	userId, err := server.checkUserIdCookie(r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return server.Dao.QueryAccount(userId)
-}
-
-
-func (server *RestServer) setUserCookie (accountId int32, w http.ResponseWriter) {
-	if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountId); err == nil {
-		cookie := &http.Cookie{
-			Name:  "_ts_u",
-			Value: encoded,
-			Path:  "/",
-			Secure: false, // TODO: configurabile
-			HttpOnly: true,
-		}
-
-		http.SetCookie(w, cookie)
-	} else {
-		server.Logger.Errorf("failed encoding user cookie: error=%v", err)
-	}
-}
-
-func (server *RestServer) writeResponse (statusCode int, payload interface{}, w http.ResponseWriter) {
-	if val, ok := payload.(error); ok {
-		payload = map[string]string{
-			"error": val.Error(),
-		}
-	}
-
-	res, err := json.Marshal(payload)
-	if err != nil {
-		w.WriteHeader(500)
-		return
-	}
-
-	w.WriteHeader(statusCode)
-
-	_, err = w.Write(res)
-
-	if err != nil {
-		server.Logger.Warnf("error while writing response: %v", err)
-	}
 }
 
 func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
@@ -118,13 +42,12 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			server.writeResponse(401, ts_errors.NotAuthorized, w)
 			return
 		} else if err != nil {
-			// TODO: in alternativa forbidden: mi ha dato un cookie ma non buono?
-			// putroppo securecookie non pubblica "expired"
-			w.WriteHeader(400)
+			// TODO: unsure if it is corrrect 400 or 403
+			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
-		err = server.Dao.CheckPermission(userId, groupId, sql.PermissionMember)
+		err = server.Dao.CheckPermission(userId, groupId, storage.PermissionMember)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -141,39 +64,6 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		/*		if token, found := r.URL.Query()["invitation"]; found {
-					if len(token) > 1 {
-						server.writeResponse(400, "TODO errore troppi token", w)
-						return
-					}
-
-					account, err := server.checkUserCookie(r)
-
-					if err == nil {
-						server.writeResponse(200, []*storage.Account{account}, w)
-						return
-					} else if err != http.ErrNoCookie {
-						server.writeResponse(400, "TODO illegal cookie", w)
-						return
-					}
-
-					account, err = server.Dao.QueryInvitationToken(token[0])
-
-					switch {
-					case err == sql.ErrNoRows:
-						server.writeResponse(404, ts_errors.NotFound, w)
-
-					case err != nil:
-						server.Logger.Errorf("unexpected error: error=%v", err)
-						server.writeResponse(500, ts_errors.ServerError, w)
-
-					default:
-						server.writeResponse(200, []*storage.Account{account}, w)
-					}
-
-					return
-				}
-		*/
 		accounts, err := server.Dao.QueryAccounts(groupId)
 
 		if err != nil {
@@ -286,24 +176,37 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
 func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Add("Content-Type", "application/json")
 
 		vars := mux.Vars(r)
-		id, err := strconv.Atoi(vars["id"])
 
-		if err != nil {
-			server.Logger.Errorw("illegal id parameter",
-				"err", err)
+		var account *storage.Account
+		var err error
+		var id32 int32
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
-			return
+		if vars["id"] == "me" {
+			account, err = server.checkUserCookie(r)
+			if err == nil {
+				id32 = account.Id
+			}
+		} else {
+			id, err := strconv.ParseInt(vars["id"], 10, 32)
+
+			if err != nil {
+				server.Logger.Errorw("illegal id parameter",
+					"err", err)
+
+				server.writeResponse(400, ts_errors.BadRequest, w)
+				return
+			}
+
+			id32 = int32(id)
+			account, err = server.checkUserCookie(r)
 		}
-
-		id32 := int32(id)
-		account, err := server.checkUserCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -335,6 +238,8 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 		server.writeResponse(200, account, w)
 
 	case http.MethodPost:
+
+
 	default:
 		w.WriteHeader(405)
 	}
@@ -394,7 +299,7 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 }
 
 type AccountPasswordPayload struct {
-	Id     int32  `json:"id"`
+	Id     int32  `json:"id"` // TODO: remove
 	OldPwd string `json:"old_pwd"`
 	NewPwd string `json:"new_pwd"`
 }
@@ -402,6 +307,7 @@ type AccountPasswordPayload struct {
 func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
+		// TODO: use cookie
 		decoder := json.NewDecoder(r.Body)
 
 		credentials := AccountPasswordPayload{-1, "", ""}
@@ -420,6 +326,114 @@ func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request
 		}
 
 		server.writeResponse(200, map[string]int32{"id": credentials.Id}, w)
+
+	default:
+		w.WriteHeader(405)
+	}
+}
+
+func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Add("Content-Type", "application/json")
+
+		vars := mux.Vars(r)
+
+		var err error
+		var id32 int32
+
+		id, err := strconv.ParseInt(vars["id"], 10, 32)
+
+		if err != nil {
+			server.Logger.Errorw("illegal id parameter",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		id32 = int32(id)
+
+		uid, err := server.checkUserIdCookie(r)
+
+		if err == http.ErrNoCookie {
+			server.writeResponse(401, ts_errors.NotAuthorized, w)
+			return
+		} else if err != nil {
+			// TODO: unsure if it is corrrect 400 or 403
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		if id32 != uid {
+			server.writeResponse(403, ts_errors.Forbidden, w)
+		}
+
+		groups, err := server.Dao.AccountGroups(id32)
+
+		if err == gsql.ErrNoRows {
+			groups = []*storage.ScoutGroup{}
+		} else if err != nil {
+			server.Logger.Errorw("storage error: %v", err)
+
+			server.writeResponse(500, ts_errors.ServerError, w)
+			return
+		}
+
+		server.writeResponse(200, groups, w)
+
+	default:
+		w.WriteHeader(405)
+	}
+}
+
+func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Add("Content-Type", "application/json")
+
+		vars := mux.Vars(r)
+
+		var err error
+		var id32 int32
+
+		id, err := strconv.ParseInt(vars["id"], 10, 32)
+
+		if err != nil {
+			server.Logger.Debugw("illegal id parameter",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		id32 = int32(id)
+
+		uid, err := server.checkUserIdCookie(r)
+
+		if err == http.ErrNoCookie {
+			server.writeResponse(401, ts_errors.NotAuthorized, w)
+			return
+		} else if err != nil {
+			// TODO: unsure if it is corrrect 400 or 403
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		if id32 != uid {
+			server.writeResponse(403, ts_errors.Forbidden, w)
+		}
+
+		scouts, err := server.Dao.AccountScouts(id32)
+
+		if err != nil {
+			server.Logger.Errorw("storage error: %v", err)
+
+			server.writeResponse(500, ts_errors.ServerError, w)
+			return
+		}
+
+		server.writeResponse(200, scouts, w)
 
 	default:
 		w.WriteHeader(405)

@@ -66,7 +66,9 @@ CREATE TABLE invitation (
 CREATE TABLE scout (
   id INTEGER NOT NULL AUTO_INCREMENT,
   name VARCHAR(255) NOT NULL,
+  group_id INT NOT NULL,
 
+  FOREIGN KEY (group_id) REFERENCES scout_group(id) ON DELETE CASCADE,
   PRIMARY KEY (id)
 );
 

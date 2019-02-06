@@ -5,6 +5,7 @@ type ScoutGroup struct {
 	Name string `json:"name"`
 }
 
-func NewScoutGroup() *ScoutGroup {
-	return &ScoutGroup{0, ""}
+type Scout struct {
+	Id int32 `json:"id"`
+	Name string `json:"name"`
 }

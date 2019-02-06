@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {connect} from "react-redux";
+import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
 
 
 const mapStateToProps = (state) => {
@@ -11,7 +12,21 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
     return {
+        fetchMyAccount: () => {
+            dispatch(fetchMyAccount())
+        },
 
+        updateName: (name) => {
+            dispatch(accountUpdateName(name))
+        },
+
+        updateAddress: (address) => {
+            dispatch(accountUpdateAddress(address))
+        },
+
+        saveAccount: (account) => {
+            return dispatch(saveAccount(account))
+        },
     };
 };
 
@@ -20,8 +35,22 @@ class Account extends Component {
     constructor(props) {
         super(props);
 
+        this.handleNameChange = this.handleNameChange.bind(this);
+        this.handleAddressChange = this.handleAddressChange.bind(this);
         this.handleEditScouts = this.handleEditScouts.bind(this);
         this.handleSave = this.handleSave.bind(this);
+    }
+
+    componentDidMount() {
+        this.props.fetchMyAccount();
+    }
+
+    handleNameChange(evt) {
+        this.props.updateName(evt.target.value);
+    }
+
+    handleAddressChange(evt) {
+        this.props.updateAddress(evt.target.value);
     }
 
     handleEditScouts(evt) {
@@ -31,9 +60,13 @@ class Account extends Component {
     handleSave(evt) {
         evt.preventDefault();
 
-        // TODO: save
+        this.props.saveAccount(this.props.account.data).then((response) => {
+            console.log('saved', response);
 
-        this.props.history.push("/");
+            if (response)
+                this.props.history.push("/");
+        });
+
     }
 
     render() {
@@ -47,8 +80,17 @@ class Account extends Component {
             return <p>Error... TODO</p>;
         }
 
-        if (account.data === null) {
+        if (!account.data) {
             return <p>....</p>;
+        }
+
+        const data = account.data;
+        let scoutsSummary = '';
+
+        const scouts = data.scouts;
+
+        if (scouts) {
+            scoutsSummary = scouts.map(function (s) {return s.name}).join()
         }
 
         return (
@@ -62,16 +104,18 @@ class Account extends Component {
                                    readOnly
                                    className="form-control-plaintext"
                                    id="email"
-                                   value={this.props.account.email}/>
+                                   value={data.email}
+                            />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="fullName">Nome</label>
+                            <label htmlFor="fullName">Name</label>
                             <input type="text"
                                    className="form-control"
                                    id="fullName"
                                    placeholder="Nome e cognome"
                                    aria-describedby="fullNameHelpBlock"
-                                   value={this.props.account.name}
+                                   value={data.name}
+                                   onChange={this.handleNameChange}
                             />
                             <small id="fullNameHelpBlock" className="form-text text-muted">
                                 Qualcosa che aiuti gli altri ad identificarti: nome e cognome,
@@ -80,13 +124,14 @@ class Account extends Component {
                             </small>
                         </div>
                         <div className="form-group">
-                            <label htmlFor="address">Indirizzo</label>
+                            <label htmlFor="address">Address</label>
                             <input type="text"
                                    className="form-control"
                                    id="address"
                                    placeholder="Indirizzo approssimativo"
                                    aria-describedby="addressHelpBlock"
-                                   value={this.props.account.address}
+                                   value={data.address}
+                                   onChange={this.handleAddressChange}
                             />
                             <small id="addressHelpBlock" className="form-text text-muted">
                                 È sufficiente una indicazione vaga: comune, frazione, quartiere.
@@ -101,8 +146,8 @@ class Account extends Component {
                                        readOnly
                                        className="form-control"
                                        id="children"
-                                       placeholder="Nessuno inserito"
-                                       value="Cassandra, Greta, Morgana, Genoveffa, GIuseppoina"
+                                       placeholder="None, tap to insert someone..."
+                                       value={scoutsSummary}
                                        area-describedby="childrenHelpBlock"
                                 />
                                 <div className="input-group-append">

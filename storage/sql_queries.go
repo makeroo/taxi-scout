@@ -22,7 +22,21 @@ SELECT a.id, a.name, a.email, a.address
   JOIN account_grant g ON g.account_id = a.id
  WHERE g.group_id = ?`,
 
-	"query_account": "SELECT id, name, email FROM account WHERE id = ?",
+	"query_account": "SELECT id, name, email, address FROM account WHERE id = ?",
 	//"insert_account": "INSERT INTO account (name, email, password, address) VALUES ( ?, ?, ?, ? )",
 	"account_credentials": "SELECT id, password FROM account WHERE email = ?",
+
+	"account_groups": `
+SELECT g.id, g.name
+  FROM scout_group g
+  JOIN account_grant ag ON ag.group_id = g.id
+ WHERE ag.account_id = ? AND ag.permission_id = ?
+`,
+
+	"account_scouts": `
+SELECT s.id, s.name, s.group_id
+  FROM scout s
+  JOIN tutor_scout t ON t.scout_id = s.id
+ WHERE t.tutor_id = ?
+`,
 }

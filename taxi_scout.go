@@ -20,6 +20,7 @@ func main() {
 	defer logger.Sync()
 
 	port := flag.Int("http-port", 8008, "HTTP port to listen to")
+	secure := flag.Bool("secure", false, "Publish secure cookies (requires https)")
 
 	dao, err := storage.NewSqlDatastore("mysql", "taxi_scout_user:taxi_scout_pwd@/taxi_scout?parseTime=true", logger)
 	defer dao.Close()
@@ -41,15 +42,18 @@ func main() {
 		Logger: logger,
 		Configuration: rest_backend.Configuration{
 			SecureCookies: secureCookies,
+			HttpsCookies: *secure,
 		},
 	}
 
 	r := mux.NewRouter()
 //	r.HandleFunc("/invitation/{token:.+}", rest_backend.DisableBrowserCache(server.Invitation))
 	r.HandleFunc("/accounts", rest_backend.DisableBrowserCache(server.Accounts))
-	r.HandleFunc("/account/{id:[0-9]+}", rest_backend.DisableBrowserCache(server.Account))
+	r.HandleFunc("/account/{id:[0-9]+|me}", rest_backend.DisableBrowserCache(server.Account))
 	r.HandleFunc("/accounts/authenticate", rest_backend.DisableBrowserCache(server.AccountsAuthenticate))
 	r.HandleFunc("/account/{id:[0-9]+}/password", rest_backend.DisableBrowserCache(server.AccountPassword))
+	r.HandleFunc("/account/{id:[0-9]+}/groups", rest_backend.DisableBrowserCache(server.AccountGroups))
+	r.HandleFunc("/account/{id:[0-9]+}/scouts", rest_backend.DisableBrowserCache(server.AccountScouts))
 	http.Handle("/", r)
 
 	//fs := http.FileServer(http.Dir("static/"))

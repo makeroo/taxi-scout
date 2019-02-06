@@ -1,4 +1,4 @@
-package sql
+package storage
 
 const PermissionMember int32 = 1
 const ExcursionManager int32 = 2
