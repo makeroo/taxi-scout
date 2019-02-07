@@ -297,6 +297,32 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 	return account, nil
 }
 
+func (db *SqlDatastore) AccountUpdate(account *Account) error {
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := db.stmt("update_account", tx)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	_, err = stmt.Exec(account.Name, account.Address, account.Id)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	return db.commit(tx)
+}
+
 /*
 func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, error) {
 	stmt, err := db.stmt("insert_account")

@@ -20,6 +20,8 @@ type Datastore interface {
 	AccountGroups(accountId int32) ([]*ScoutGroup, error)
 
 	AccountScouts(accountId int32) ([]*Scout, error)
+
+	AccountUpdate(account *Account) error;
 }
 
 var IdOverflow = errors.New("id_overflow")

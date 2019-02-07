@@ -2,7 +2,12 @@ import {
     ACCOUNT_FETCH_DATA_SUCCESS,
     ACCOUNT_HAS_ERRORED,
     ACCOUNT_INFO_FETCH_DATA_SUCCESS,
-    ACCOUNT_IS_LOADING, ACCOUNT_UPDATE_ADDRESS, ACCOUNT_UPDATE_NAME
+    ACCOUNT_IS_LOADING,
+    ACCOUNT_IS_SAVING,
+    ACCOUNT_SAVE_HAS_ERRORED,
+    ACCOUNT_SAVE_SUCCEDED,
+    ACCOUNT_UPDATE_ADDRESS,
+    ACCOUNT_UPDATE_NAME
 } from "../constants/action-types";
 
 export function account(
@@ -60,6 +65,40 @@ export function account(
                 data: {
                     ...state.data,
                     address: action.address
+                }
+            };
+
+        case ACCOUNT_IS_SAVING:
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    savingAction: {
+                        inProgress: true,
+                    }
+                }
+            };
+
+        case ACCOUNT_SAVE_HAS_ERRORED:
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    savingAction: {
+                        inProgress: false,
+                        error: action.error
+                    }
+                }
+            };
+
+        case ACCOUNT_SAVE_SUCCEDED:
+            return {
+                ...state,
+                data: {
+                    ...state.data,
+                    savingAction: {
+                        inProgress: false,
+                    }
                 }
             };
 

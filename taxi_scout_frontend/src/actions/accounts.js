@@ -89,6 +89,9 @@ export function saveAccount(account) {
                     case 502:
                         throw { error: SERVICE_NOT_AVAILABLE };
 
+                    case 200:
+                        return {};
+
                     default:
                         return response.json();
                 }

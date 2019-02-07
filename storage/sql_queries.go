@@ -39,4 +39,6 @@ SELECT s.id, s.name, s.group_id
   JOIN tutor_scout t ON t.scout_id = s.id
  WHERE t.tutor_id = ?
 `,
+
+	"update_account": "UPDATE account SET name = ?, address = ? WHERE id = ?",
 }

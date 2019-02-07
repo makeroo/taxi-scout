@@ -238,7 +238,53 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 		server.writeResponse(200, account, w)
 
 	case http.MethodPost:
+		myId, err := server.checkUserIdCookie(r)
 
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
+			return
+
+		case nil:
+
+		default:
+			server.Logger.Debugw("unexpected cookie error",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		decoder := json.NewDecoder(r.Body)
+
+		account := storage.Account{}
+		err = decoder.Decode(&account)
+
+		if err != nil {
+			server.Logger.Debugw("update account: illegal payload",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		if myId != account.Id {
+			server.writeResponse(403, ts_errors.Forbidden, w)
+			return
+		}
+
+		err = server.Dao.AccountUpdate(&account)
+
+		if err != nil {
+			server.Logger.Errorw("update account: update failed",
+				"err", err)
+
+			server.writeResponse(500, ts_errors.ServerError, w)
+			return
+		}
+
+		// time.Sleep(20 * time.Second)
+		server.writeResponse(200, nil, w)
 
 	default:
 		w.WriteHeader(405)

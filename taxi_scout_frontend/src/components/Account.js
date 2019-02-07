@@ -66,7 +66,6 @@ class Account extends Component {
             if (response)
                 this.props.history.push("/");
         });
-
     }
 
     render() {
@@ -85,6 +84,8 @@ class Account extends Component {
         }
 
         const data = account.data;
+        const savingAction = data.savingAction || {};
+
         let scoutsSummary = '';
 
         const scouts = data.scouts;
@@ -96,7 +97,7 @@ class Account extends Component {
         return (
             <div className="Account">
                 <div className="container">
-                    <h1>Informazioni personali</h1>
+                    <h1>Something about you</h1>
                     <form>
                         <div className="form-group">
                             <label htmlFor="email">Email</label>
@@ -162,7 +163,8 @@ class Account extends Component {
                         <button type="submit"
                                 className="btn btn-primary mx-2"
                                 onClick={this.handleSave}
-                        >Aggiorna</button>
+                                disabled={savingAction.inProgress}
+                        >Update and return to homepage</button>
 
                     </form>
                 </div>
