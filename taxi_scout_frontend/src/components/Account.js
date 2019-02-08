@@ -1,6 +1,9 @@
 import React, {Component} from 'react';
+import Modal from 'react-modal';
 import {connect} from "react-redux";
 import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
+import {BASE_URL} from "../constants/rest_api";
+import {SERVER_ERROR, SERVICE_NOT_AVAILABLE} from "../constants/errors";
 
 
 const mapStateToProps = (state) => {
@@ -24,16 +27,32 @@ const mapDispatchToProps = (dispatch) => {
             dispatch(accountUpdateAddress(address))
         },
 
-        saveAccount: (account) => {
+/*        saveAccount: (account) => {
             return dispatch(saveAccount(account))
-        },
+        },*/
     };
+};
+
+
+const customStyles = {
+    content : {
+        top                   : '50%',
+        left                  : '50%',
+        right                 : 'auto',
+        bottom                : 'auto',
+        marginRight           : '-50%',
+        transform             : 'translate(-50%, -50%)'
+    }
 };
 
 
 class Account extends Component {
     constructor(props) {
         super(props);
+
+        this.state = {
+            saving: false
+        };
 
         this.handleNameChange = this.handleNameChange.bind(this);
         this.handleAddressChange = this.handleAddressChange.bind(this);
@@ -60,13 +79,57 @@ class Account extends Component {
     handleSave(evt) {
         evt.preventDefault();
 
-        this.props.saveAccount(this.props.account.data).then((response) => {
+        const account = this.props.account.data;
+
+        this.setState({
+            saving: true
+        });
+
+        fetch(`${BASE_URL}/account/${account.id}`, {
+            credentials: 'same-origin',
+            method: 'POST',
+            body: JSON.stringify(account)
+        })
+            .then((response) => {
+                switch (response.status) {
+                    case 502:
+                        throw { error: SERVICE_NOT_AVAILABLE };
+                    case 200:
+                        return {};
+                    default:
+                        return response.json();
+                }
+            })
+            .then((response) => {
+                if ('error' in response)
+                    throw response;
+
+                this.setState({saving: false});
+                this.props.history.push("/");
+            })
+            .catch((error) => {
+                if (!error || typeof error.error !== 'string') {
+                    console.log('ops', error);
+
+                    error = { error: SERVER_ERROR };
+                }
+
+                this.setState({
+                    saving: false,
+                    saveError: error,
+                });
+            });
+/*        this.props.saveAccount(this.props.account.data).then((response) => {
             console.log('saved', response);
 
             if (response)
                 this.props.history.push("/");
-        });
+        });*/
     }
+
+    // TODO: modal "saving..."
+
+    // TODO: i18n
 
     render() {
         const account = this.props.account;
@@ -141,7 +204,7 @@ class Account extends Component {
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="children">Scoutisti</label>
+                            <label htmlFor="children">Scouts</label>
                             <div className="input-group mb-2" onClick={this.handleEditScouts}>
                                 <input type="text"
                                        readOnly
@@ -168,6 +231,28 @@ class Account extends Component {
 
                     </form>
                 </div>
+                {/*
+                                    overlayClassName="modal fade show"
+                    bodyOpenClassName="modal-open"
+                    className="modal-dialog modal-dialog-centered"
+
+                */}
+                <Modal
+                    style={customStyles}
+                    isOpen={this.state.saving}
+                    contentLabel="Saving..."
+                >
+                    <h2 >Hello</h2>
+                    <div>I am a modal</div>
+                    <form>
+                        <input />
+                        <button>tab navigation</button>
+                        <button>stays</button>
+                        <button>inside</button>
+                        <button>the modal</button>
+                    </form>
+                    Wait please
+                </Modal>
             </div>
         );
     }
