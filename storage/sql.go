@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/makeroo/taxi_scout/ts_errors"
 	"math"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -17,6 +18,7 @@ type SqlDatastore struct {
 	InvitationDuration time.Duration
 
 	preparedStatements map[string]*sql.Stmt
+	preparedStatementsLock *sync.RWMutex
 }
 
 func NewSqlDatastore(driver string, dataSourceName string, logger *zap.SugaredLogger) (*SqlDatastore, error) {
@@ -35,7 +37,13 @@ func NewSqlDatastorec(driver string, dataSourceConnection *sql.DB, logger *zap.S
 	}
 
 	// FIXME: trasferirlo in un file di settings
-	return &SqlDatastore{dataSourceConnection, logger, time.Duration(10) * time.Hour, map[string]*sql.Stmt{}}, nil
+	return &SqlDatastore{
+		dataSourceConnection,
+		logger,
+		time.Duration(10) * time.Hour,
+		map[string]*sql.Stmt{},
+		&sync.RWMutex{},
+	}, nil
 }
 
 func (db *SqlDatastore) Close() {
@@ -482,23 +490,32 @@ func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
 }
 
 func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
+	db.preparedStatementsLock.RLock()
 	stmt, found := db.preparedStatements[query]
+	db.preparedStatementsLock.RUnlock()
+
 	var err error
 
 	if !found {
-		sqlQuery, found := SqlQueries[query]
+		db.preparedStatementsLock.Lock()
+		stmt, found = db.preparedStatements[query]
+		defer db.preparedStatementsLock.Unlock()
 
 		if !found {
-			return nil, UnknownQuery // TODO: error parameter
+			sqlQuery, found := SqlQueries[query]
+
+			if !found {
+				return nil, UnknownQuery // TODO: error parameter
+			}
+
+			stmt, err = db.Prepare(sqlQuery)
+
+			if err != nil {
+				return nil, err
+			}
+
+			db.preparedStatements[sqlQuery] = stmt
 		}
-
-		stmt, err = db.Prepare(sqlQuery)
-
-		if err != nil {
-			return nil, err
-		}
-
-		db.preparedStatements[sqlQuery] = stmt
 	}
 
 	if tx != nil {
