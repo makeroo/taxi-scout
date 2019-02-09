@@ -2,8 +2,7 @@ import React, {Component} from 'react';
 import Modal from 'react-modal';
 import {connect} from "react-redux";
 import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
-import {BASE_URL} from "../constants/rest_api";
-import {SERVER_ERROR, SERVICE_NOT_AVAILABLE} from "../constants/errors";
+import {jsonFetch, parseError} from "../utils/json_fetch";
 
 
 const mapStateToProps = (state) => {
@@ -85,38 +84,15 @@ class Account extends Component {
             saving: true
         });
 
-        fetch(`${BASE_URL}/account/${account.id}`, {
-            credentials: 'same-origin',
-            method: 'POST',
-            body: JSON.stringify(account)
-        })
+        jsonFetch(`/account/${account.id}`, account)
             .then((response) => {
-                switch (response.status) {
-                    case 502:
-                        throw { error: SERVICE_NOT_AVAILABLE };
-                    case 200:
-                        return {};
-                    default:
-                        return response.json();
-                }
-            })
-            .then((response) => {
-                if ('error' in response)
-                    throw response;
-
                 this.setState({saving: false});
                 this.props.history.push("/");
             })
             .catch((error) => {
-                if (!error || typeof error.error !== 'string') {
-                    console.log('ops', error);
-
-                    error = { error: SERVER_ERROR };
-                }
-
                 this.setState({
                     saving: false,
-                    saveError: error,
+                    saveError: parseError(error),
                 });
             });
 /*        this.props.saveAccount(this.props.account.data).then((response) => {
@@ -143,7 +119,7 @@ class Account extends Component {
         }
 
         if (!account.data) {
-            return <p>....</p>;
+            return <p>...</p>;
         }
 
         const data = account.data;
