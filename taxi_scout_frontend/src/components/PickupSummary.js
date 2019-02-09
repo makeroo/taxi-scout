@@ -36,6 +36,7 @@ function matchScout (scoutIndex, scoutIds) {
 }
 
 const mapStateToProps = (state, props) => {
+    // TODO: use reselect
     const myId = state.account.data.id;
     const coord = state.excursion[props.direction];
     const tutorsIndex = state.excursion.data.tutors;
