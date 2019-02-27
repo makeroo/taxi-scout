@@ -23,14 +23,17 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 		group, found := r.URL.Query()["group"]
 
 		if !found || len(group) != 1 {
-			w.WriteHeader(400)
+			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
 		groupId64, err := strconv.ParseInt(group[0], 10, 32)
 
 		if err != nil {
-			w.WriteHeader(400)
+			server.Logger.Debugw("can't parse group query parameter",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
@@ -42,12 +45,15 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			server.writeResponse(401, ts_errors.NotAuthorized, w)
 			return
 		} else if err != nil {
+			server.Logger.Debugw("can't decode user cookie",
+				"err", err)
+
 			// TODO: unsure if it is corrrect 400 or 403
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
-		err = server.Dao.CheckPermission(userId, groupId, storage.PermissionMember)
+		accounts, err := server.Dao.QueryAccounts(groupId, userId)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -56,21 +62,12 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case nil:
+			server.writeResponse(200, accounts, w)
 
 		default:
-			server.Logger.Errorf("unexpected error: error=%v", err)
+			server.Logger.Errorw("fetch accounts failed",
+				"err", err)
 			server.writeResponse(500, ts_errors.ServerError, w)
-
-			return
-		}
-
-		accounts, err := server.Dao.QueryAccounts(groupId)
-
-		if err != nil {
-			server.Logger.Errorf("unexpected error: error=%v", err)
-			server.writeResponse(500, ts_errors.ServerError, w)
-		} else {
-			server.writeResponse(200, accounts, w)
 		}
 
 	case http.MethodPost:
@@ -78,14 +75,14 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 		decoder := json.NewDecoder(r.Body)
 
-		invitationToken := new(InvitationToken)
+		invitationToken := InvitationToken{}
 
 		err := decoder.Decode(invitationToken)
 
 		if err != nil {
-			server.Logger.Errorw("InvitationToken decoding failed",
-				"err", err,
-				)
+			server.Logger.Debugw("InvitationToken decoding failed",
+				"err", err)
+
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
@@ -115,8 +112,8 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 				return
 			} else {
-				server.Logger.Debugw("cookie decoding failed",
-					"err", cookieErr)
+				server.Logger.Debugw("both invitation processing and cookie decoding failed",
+					"cookieErr", cookieErr)
 			}
 
 			switch t := err.(type) {
@@ -148,29 +145,7 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 				"new_account": !found,
 			},
 			w)
-/*		account := storage.NewAccountWithCredentials()
-		err := decoder.Decode(account)
 
-		if err != nil {
-			w.WriteHeader(400)
-			return
-		}
-
-		newId, err := server.Dao.InsertAccount(account)
-
-		if err != nil {
-			server.Logger.Errorw("account creation failed",
-				"err", err,
-				"name", account.Name,
-				"email", account.Email,
-			)
-			w.WriteHeader(400)
-			return
-		}
-
-		bytes, err := json.Marshal(map[string]int32{"id": newId})
-		w.Write(bytes)
-*/
 	default:
 		w.WriteHeader(405)
 	}
@@ -303,11 +278,11 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 
 		decoder := json.NewDecoder(r.Body)
 
-		credentials := AccountAuthenticatePayload{"", ""}
+		credentials := AccountAuthenticatePayload{}
 		err := decoder.Decode(&credentials)
 
 		if err != nil {
-			server.Logger.Errorw("payload unmarshalling failed",
+			server.Logger.Debugw("payload unmarshalling failed",
 				"err", err,
 			)
 			server.writeResponse(400, ts_errors.BadRequest, w)
@@ -318,13 +293,16 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 		accountId, err := server.Dao.AuthenticateAccount(credentials.Email, credentials.Pwd)
 
 		if err != nil {
-			server.Logger.Errorw("authentication failed",
+			server.Logger.Debugw("authentication failed",
 				"err", err,
 				"email", credentials.Email,
 			)
 			server.writeResponse(401, ts_errors.NotAuthorized, w)
 			return
 		}
+
+		server.Logger.Infow("user authenticated",
+			"email", credentials.Email)
 
 		if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountId); err == nil {
 			cookie := &http.Cookie{
@@ -345,7 +323,7 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 }
 
 type AccountPasswordPayload struct {
-	Id     int32  `json:"id"` // TODO: remove
+	Id     int32  `json:"id"`
 	OldPwd string `json:"old_pwd"`
 	NewPwd string `json:"new_pwd"`
 }
@@ -353,21 +331,50 @@ type AccountPasswordPayload struct {
 func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		// TODO: use cookie
+		w.Header().Add("Content-Type", "application/json")
+
+		userId, err := server.checkUserIdCookie(r)
+
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
+			return
+
+		case nil:
+
+		default:
+			server.Logger.Debugw("unexpected cookie error",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
 		decoder := json.NewDecoder(r.Body)
 
-		credentials := AccountPasswordPayload{-1, "", ""}
-		err := decoder.Decode(credentials)
+		credentials := AccountPasswordPayload{}
+		err = decoder.Decode(credentials)
 
 		if err != nil {
+			server.Logger.Debugw("json decoding failed",
+				"err", err)
+
 			w.WriteHeader(400)
+			return
+		}
+
+		if userId != credentials.Id {
+			server.writeResponse(403, ts_errors.Forbidden, w)
 			return
 		}
 
 		err = server.Dao.UpdateAccountPassword(credentials.Id, credentials.OldPwd, credentials.NewPwd)
 
 		if err != nil {
-			w.WriteHeader(400)
+			server.Logger.Errorw("password update failed",
+				"err", err)
+
+			server.writeResponse(500, ts_errors.ServerError, w)
 			return
 		}
 
@@ -391,7 +398,7 @@ func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) 
 		id, err := strconv.ParseInt(vars["id"], 10, 32)
 
 		if err != nil {
-			server.Logger.Errorw("illegal id parameter",
+			server.Logger.Debugw("illegal id parameter",
 				"err", err)
 
 			server.writeResponse(400, ts_errors.BadRequest, w)
@@ -402,17 +409,24 @@ func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) 
 
 		uid, err := server.checkUserIdCookie(r)
 
-		if err == http.ErrNoCookie {
-			server.writeResponse(401, ts_errors.NotAuthorized, w)
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
 			return
-		} else if err != nil {
-			// TODO: unsure if it is corrrect 400 or 403
+
+		case nil:
+
+		default:
+			server.Logger.Debugw("unexpected cookie error",
+				"err", err)
+
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
 		if id32 != uid {
 			server.writeResponse(403, ts_errors.Forbidden, w)
+			return
 		}
 
 		groups, err := server.Dao.AccountGroups(id32)
@@ -457,22 +471,31 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 
 		uid, err := server.checkUserIdCookie(r)
 
-		if err == http.ErrNoCookie {
-			server.writeResponse(401, ts_errors.NotAuthorized, w)
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
 			return
-		} else if err != nil {
-			// TODO: unsure if it is corrrect 400 or 403
+
+		case nil:
+
+		default:
+			server.Logger.Debugw("unexpected cookie error",
+				"err", err)
+
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
 		if id32 != uid {
 			server.writeResponse(403, ts_errors.Forbidden, w)
+			return
 		}
 
 		scouts, err := server.Dao.AccountScouts(id32)
 
-		if err != nil {
+		if err == gsql.ErrNoRows {
+			scouts = []*storage.Scout{}
+		} else if err != nil {
 			server.Logger.Errorw("storage error: %v", err)
 
 			server.writeResponse(500, ts_errors.ServerError, w)
