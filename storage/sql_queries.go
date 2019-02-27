@@ -41,4 +41,8 @@ SELECT s.id, s.name, s.group_id
 `,
 
 	"update_account": "UPDATE account SET name = ?, address = ? WHERE id = ?",
+
+	"insert_scout": "INSERT INTO scout (name, group_id) VALUES (?, ?)",
+	"update_scout": "UPDATE scout SET name = ? WHERE id = ?",
+	"check_if_tutor": "SELECT count(*) FROM tutor_scout WHERE scout_id=? AND tutor_id=?",
 }

@@ -251,7 +251,13 @@ func (db *SqlDatastore) QueryInvitationToken (token string) (*Account, bool, err
 	return account, found, err
 }
 
-func (db *SqlDatastore) QueryAccounts(group int32) ([]*Account, error) {
+func (db *SqlDatastore) QueryAccounts(group int32, userId int32) ([]*Account, error) {
+	err := db.checkPermission(userId, group, PermissionMember, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
 	stmt, err := db.stmt("query_accounts", nil)
 
 	if err != nil {
@@ -487,6 +493,110 @@ func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
 	}
 
 	return scouts, nil
+}
+/*
+func (db *SqlDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args... interface{}) error {
+	stmt, err := db.stmt(stmtName, tx)
+
+	row := stmt.QueryRow(args...)
+
+	var count int64
+
+	err = row.Scan(&count)
+
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return ts_errors.Forbidden
+	}
+
+	return nil
+}*/
+
+func (db *SqlDatastore) UpdateScout(scout Scout, tutorId int32) (int32, error) {
+	tx, err := db.Begin()
+
+	if err != nil {
+		return 0, err
+	}
+
+	var r int32 = 0
+
+	if scout.Id < 0 {
+		// insert a new scout
+		err = db.checkPermission(tutorId, scout.GroupId, PermissionMember, tx)
+
+		if err != nil {
+			db.rollback(tx)
+			return 0, err
+		}
+
+
+		stmt, err := db.stmt("insert_scout", tx)
+
+		if err != nil {
+			db.rollback(tx)
+			return 0, err
+		}
+
+		res, err := stmt.Exec(scout.Name, scout.GroupId)
+
+		if err != nil {
+			db.rollback(tx)
+			return 0, err
+		}
+
+		lid, err := res.LastInsertId()
+
+		if err != nil {
+			db.rollback(tx)
+			return 0, err
+		}
+
+		if lid > int64(math.MaxInt32) {
+			db.rollback(tx)
+
+			return 0, IdOverflow
+		}
+
+		r = int32(lid)
+	} else {
+		stmt, err := db.stmt("check_if_tutor", tx)
+
+		row := stmt.QueryRow(scout.Id, tutorId)
+
+		var count int64
+
+		err = row.Scan(&count)
+
+		if err != nil {
+			db.rollback(tx)
+
+			return 0, err
+		}
+
+		if count == 0 {
+			db.rollback(tx)
+
+			return 0, ts_errors.Forbidden
+		}
+
+		stmt, err = db.stmt("update_scout", tx)
+
+		_, err = stmt.Exec(scout.Name, scout.Id, scout.GroupId)
+
+		r = scout.Id
+	}
+
+	if err != nil {
+		db.rollback(tx)
+
+		return 0, err
+	}
+
+	return r, db.commit(tx)
 }
 
 func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {

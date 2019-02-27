@@ -3,15 +3,11 @@ package storage
 import "github.com/kataras/iris/core/errors"
 
 type Datastore interface {
-	CheckPermission (userId int32, groupId int32, permId int32) error;
-
 	QueryInvitationToken (token string) (*Account, bool, error)
 
-	QueryAccounts(group int32) ([]*Account, error)
+	QueryAccounts(group int32, userId int32) ([]*Account, error)
 
 	QueryAccount(id int32) (*Account, error)
-
-//	InsertAccount(*AccountWithCredentials) (int32, error)
 
 	AuthenticateAccount(email string, pwd string) (int32, error)
 
@@ -21,7 +17,9 @@ type Datastore interface {
 
 	AccountScouts(accountId int32) ([]*Scout, error)
 
-	AccountUpdate(account *Account) error;
+	AccountUpdate(account *Account) error
+
+	UpdateScout(scout Scout, tutorId int32) (int32, error)
 }
 
 var IdOverflow = errors.New("id_overflow")
