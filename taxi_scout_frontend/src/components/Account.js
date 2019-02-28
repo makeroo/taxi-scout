@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import Modal from 'react-modal';
 import {connect} from "react-redux";
 import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
-import {jsonFetch, parseError} from "../utils/json_fetch";
+//import {jsonFetch, parseError} from "../utils/json_fetch";
 
 
 const mapStateToProps = (state) => {
@@ -26,9 +26,9 @@ const mapDispatchToProps = (dispatch) => {
             dispatch(accountUpdateAddress(address))
         },
 
-/*        saveAccount: (account) => {
+        saveAccount: (account) => {
             return dispatch(saveAccount(account))
-        },*/
+        },
     };
 };
 
@@ -49,10 +49,10 @@ class Account extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {
+/*        this.state = {
             saving: false
         };
-
+*/
         this.handleNameChange = this.handleNameChange.bind(this);
         this.handleAddressChange = this.handleAddressChange.bind(this);
         this.handleEditScouts = this.handleEditScouts.bind(this);
@@ -77,7 +77,7 @@ class Account extends Component {
 
     handleSave(evt) {
         evt.preventDefault();
-
+/*
         const account = this.props.account.data;
 
         this.setState({
@@ -94,13 +94,13 @@ class Account extends Component {
                     saving: false,
                     saveError: parseError(error),
                 });
-            });
-/*        this.props.saveAccount(this.props.account.data).then((response) => {
-            console.log('saved', response);
+            });*/
+        this.props.saveAccount(this.props.account.data).then((response) => {
+            //console.log('saved', response);
 
             if (response)
                 this.props.history.push("/");
-        });*/
+        });
     }
 
     // TODO: modal "saving..."
@@ -215,7 +215,7 @@ class Account extends Component {
                 */}
                 <Modal
                     style={customStyles}
-                    isOpen={this.state.saving}
+                    isOpen={savingAction.inProgress}
                     contentLabel="Saving..."
                 >
                     <h2 >Hello</h2>

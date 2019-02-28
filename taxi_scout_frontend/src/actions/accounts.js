@@ -7,10 +7,15 @@ import {
     ACCOUNT_SAVE_HAS_ERRORED,
     ACCOUNT_SAVE_SUCCEDED,
     ACCOUNT_UPDATE_ADDRESS,
-    ACCOUNT_UPDATE_NAME
+    ACCOUNT_UPDATE_NAME,
+    SCOUT_SAVE_FAILED,
+    SCOUT_SAVING,
+    SCOUT_SELECT,
+    SCOUT_UPDATE_NAME
 } from "../constants/action-types";
 import {jsonFetch, parseError} from "../utils/json_fetch";
 
+// account related page loading
 
 export function accountIsLoading() {
     return {
@@ -40,6 +45,33 @@ export function accountInfoFetchDataSuccess(groups, scouts) {
         scouts
     };
 }
+
+export function fetchMyAccount() {
+    return (dispatch) => {
+        dispatch(accountIsLoading());
+
+        return jsonFetch('/account/me')
+            .then((account) => {
+                dispatch(accountFetchDataSuccess(account));
+
+                return Promise.all([
+                    jsonFetch(`/account/${account.id}/groups`),
+                    jsonFetch(`/account/${account.id}/scouts`)
+                ]);
+            })
+            .then((responses) => {
+                let groups = responses[0];
+                let scouts = responses[1];
+
+                dispatch(accountInfoFetchDataSuccess(groups, scouts));
+            })
+            .catch((error) => {
+                dispatch(accountHasErrored(parseError(error)));
+            });
+    }
+}
+
+// account editing
 
 export function accountUpdateName(name) {
     return {
@@ -94,27 +126,76 @@ export function saveAccount(account) {
     };
 }
 
-export function fetchMyAccount() {
+// scouts editing
+
+export function scoutUpdateName(name) {
+    return {
+        type: SCOUT_UPDATE_NAME,
+        name
+    };
+}
+
+export function selectScout(index) {
+    return {
+        type: SCOUT_SELECT,
+        index
+    };
+}
+
+export function scoutSaving() {
+    return {
+        type: SCOUT_SAVING
+    };
+}
+
+export function scoutSaveFailed(error) {
+    return {
+        type: SCOUT_SAVE_FAILED,
+        error
+    };
+}
+
+export function removeScout() {
+    // TODO
+}
+
+export function editScout(account, index) {
     return (dispatch) => {
-        dispatch(accountIsLoading());
+        const scouts = account.scouts;
+        const scoutEditing = account.scoutEditing;
 
-        return jsonFetch('/account/me')
-            .then((account) => {
-                dispatch(accountFetchDataSuccess(account));
+        if (!scoutEditing) {
+            dispatch(selectScout(index));
+            return
+        }
 
-                return Promise.all([
-                    jsonFetch(`/account/${account.id}/groups`),
-                    jsonFetch(`/account/${account.id}/scouts`)
-                ]);
-            })
-            .then((responses) => {
-                let groups = responses[0];
-                let scouts = responses[1];
+        const oldIndex = scoutEditing.index;
 
-                dispatch(accountInfoFetchDataSuccess(groups, scouts));
-            })
-            .catch((error) => {
-                dispatch(accountHasErrored(parseError(error)));
-            });
-    }
+        if (index === oldIndex)
+            return;
+
+        const scout = scouts[oldIndex];
+
+        if (scout.id === -1) {
+            jsonFetch(`/account/${account.id}/scouts`, scout)
+                .then(() => {
+                    // FIXME: set new scout's id
+                    dispatch(selectScout(index));
+                })
+                .catch((error) => {
+                    dispatch(scoutSaveFailed(error));
+                });
+        } else if (scoutEditing.origName === scout.name) {
+            dispatch(selectScout(index));
+        } else {
+            jsonFetch(`/scout/${scout.id}`, scout, 'PUT')
+                .then(() => {
+                    dispatch(selectScout(index));
+                    //dispatch(scoutSaveSucceded(index));
+                })
+                .catch((error) => {
+                    dispatch(scoutSaveFailed(error));
+                });
+        }
+    };
 }
