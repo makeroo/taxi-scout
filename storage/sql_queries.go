@@ -24,6 +24,7 @@ SELECT a.id, a.name, a.email, a.address
 
 	"query_account": "SELECT id, name, email, address FROM account WHERE id = ?",
 	//"insert_account": "INSERT INTO account (name, email, password, address) VALUES ( ?, ?, ?, ? )",
+	"update_account": "UPDATE account SET name = ?, address = ? WHERE id = ?",
 	"account_credentials": "SELECT id, password FROM account WHERE email = ?",
 
 	"account_groups": `
@@ -40,9 +41,10 @@ SELECT s.id, s.name, s.group_id
  WHERE t.tutor_id = ?
 `,
 
-	"update_account": "UPDATE account SET name = ?, address = ? WHERE id = ?",
+	"add_scout": "INSERT INTO tutor_scout (tutor_id, scout_id) VALUES (?, ?)",
+
+	"check_if_tutor": "SELECT count(*) FROM tutor_scout WHERE scout_id=? AND tutor_id=?",
 
 	"insert_scout": "INSERT INTO scout (name, group_id) VALUES (?, ?)",
 	"update_scout": "UPDATE scout SET name = ? WHERE id = ?",
-	"check_if_tutor": "SELECT count(*) FROM tutor_scout WHERE scout_id=? AND tutor_id=?",
 }

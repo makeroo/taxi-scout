@@ -54,6 +54,8 @@ func main() {
 	r.HandleFunc("/account/{id:[0-9]+}/password", rest_backend.DisableBrowserCache(server.AccountPassword))
 	r.HandleFunc("/account/{id:[0-9]+}/groups", rest_backend.DisableBrowserCache(server.AccountGroups))
 	r.HandleFunc("/account/{id:[0-9]+}/scouts", rest_backend.DisableBrowserCache(server.AccountScouts))
+//	r.HandleFunc("/scouts", rest_backend.DisableBrowserCache(server.Scouts))
+	r.HandleFunc("/scout/{id:[0-9]+}", rest_backend.DisableBrowserCache(server.Scout))
 	http.Handle("/", r)
 
 	//fs := http.FileServer(http.Dir("static/"))

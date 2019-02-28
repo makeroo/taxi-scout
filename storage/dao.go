@@ -19,7 +19,7 @@ type Datastore interface {
 
 	AccountUpdate(account *Account) error
 
-	UpdateScout(scout Scout, tutorId int32) (int32, error)
+	InsertOrUpdateScout(scout Scout, tutorId int32) (int32, error)
 }
 
 var IdOverflow = errors.New("id_overflow")

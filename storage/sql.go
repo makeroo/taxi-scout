@@ -479,7 +479,7 @@ func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
 
 	for rows.Next() {
 		scout := new(Scout)
-		err := rows.Scan(&scout.Id, &scout.Name)
+		err := rows.Scan(&scout.Id, &scout.Name, &scout.GroupId)
 
 		if err != nil {
 			return nil, err
@@ -515,7 +515,7 @@ func (db *SqlDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args...
 	return nil
 }*/
 
-func (db *SqlDatastore) UpdateScout(scout Scout, tutorId int32) (int32, error) {
+func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -562,6 +562,16 @@ func (db *SqlDatastore) UpdateScout(scout Scout, tutorId int32) (int32, error) {
 		}
 
 		r = int32(lid)
+
+		stmt, err = db.stmt("add_scout", tx)
+
+		_, err = stmt.Exec(tutorId, r)
+
+		/*if err != nil {
+			db.rollback(tx)
+			return 0, err
+		}*/
+
 	} else {
 		stmt, err := db.stmt("check_if_tutor", tx)
 
