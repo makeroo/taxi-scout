@@ -434,7 +434,8 @@ func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) 
 		if err == gsql.ErrNoRows {
 			groups = []*storage.ScoutGroup{}
 		} else if err != nil {
-			server.Logger.Errorw("storage error: %v", err)
+			server.Logger.Errorw("storage error:",
+				"err", err)
 
 			server.writeResponse(500, ts_errors.ServerError, w)
 			return
@@ -496,13 +497,89 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 		if err == gsql.ErrNoRows {
 			scouts = []*storage.Scout{}
 		} else if err != nil {
-			server.Logger.Errorw("storage error: %v", err)
+			server.Logger.Errorw("storage error:",
+				"err", err)
 
 			server.writeResponse(500, ts_errors.ServerError, w)
 			return
 		}
 
 		server.writeResponse(200, scouts, w)
+
+	case http.MethodPost:
+		w.Header().Add("Content-Type", "application/json")
+
+		vars := mux.Vars(r)
+
+		var err error
+		var id32 int32
+
+		id, err := strconv.ParseInt(vars["id"], 10, 32)
+
+		if err != nil {
+			server.Logger.Debugw("illegal id parameter",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		id32 = int32(id)
+
+		uid, err := server.checkUserIdCookie(r)
+
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
+			return
+
+		case nil:
+
+		default:
+			server.Logger.Debugw("unexpected cookie error",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		if id32 != uid {
+			server.writeResponse(403, ts_errors.Forbidden, w)
+			return
+		}
+
+		decoder := json.NewDecoder(r.Body)
+
+		scout := storage.Scout{}
+		err = decoder.Decode(&scout)
+
+		if err != nil {
+			server.Logger.Debugw("update scout: illegal payload",
+				"err", err)
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		scout.Id = -1
+
+		scoutId, err := server.Dao.InsertOrUpdateScout(scout, uid)
+
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
+
+		case nil:
+			server.writeResponse(200, map[string]int32{
+				"id": scoutId,
+			}, w)
+
+		default:
+			server.Logger.Errorw("scout insert failed",
+				"err", err)
+
+			server.writeResponse(500, ts_errors.ServerError, w)
+		}
 
 	default:
 		w.WriteHeader(405)
