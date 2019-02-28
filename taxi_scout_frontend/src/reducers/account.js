@@ -120,14 +120,14 @@ export function account(
 
         case SCOUT_SELECT:
             if (action.index === -1) {
-                let scouts = state.scouts || [];
+                let scouts = state.scouts;
 
-                if (scouts.length === 0) {
-                    scouts = scouts.slice(0);
-                } else if (scouts[scouts.length - 1].id >= 0) {
-                    scouts = scouts.slice(0);
+                if (!scouts) {
+                    scouts = [];
+                } else if (scouts.length > 0 && scouts[scouts.length - 1].id < 0) {
+                    return;
                 } else {
-                    return state;
+                    scouts = scouts.slice(0);
                 }
 
                 scouts.push({
@@ -148,7 +148,7 @@ export function account(
             return {
                 ...state,
                 scoutEditing: {
-                    index: action.index
+                    index: action.index,
                 }
             };
 

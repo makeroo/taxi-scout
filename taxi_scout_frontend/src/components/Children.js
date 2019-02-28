@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import {fetchMyAccount, editScout, scoutUpdateName} from "../actions/accounts";
 import {connect} from "react-redux";
-import {jsonFetch} from "../utils/json_fetch";
 
 
 const mapStateToProps = (state) => {
@@ -117,6 +116,7 @@ class Children extends Component {
 
         let scouts = account.scouts || [];
         let groups = account.groups || [];
+        let scoutEditing = account.scoutEditing || {};
 
         return (
             <div className="container">
@@ -125,7 +125,7 @@ class Children extends Component {
                     <table className="table">
                         <tbody>
                         {scouts.map((scout, index) => (
-                            index === account.scoutEditing.index ? (
+                            index === scoutEditing.index ? (
                                 <tr key={scout.id || -1}>
                                     <td><input type="text"
                                                className="form-control form-control-sm"

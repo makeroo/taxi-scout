@@ -177,7 +177,7 @@ export function editScout(account, index) {
         const scout = scouts[oldIndex];
 
         if (scout.id === -1) {
-            jsonFetch(`/account/${account.id}/scouts`, scout)
+            jsonFetch(`/account/${account.data.id}/scouts`, scout)
                 .then(() => {
                     // FIXME: set new scout's id
                     dispatch(selectScout(index));
@@ -185,7 +185,7 @@ export function editScout(account, index) {
                 .catch((error) => {
                     dispatch(scoutSaveFailed(error));
                 });
-        } else if (scoutEditing.origName === scout.name) {
+        } else if (scoutEditing.origName === undefined || scoutEditing.origName === scout.name) {
             dispatch(selectScout(index));
         } else {
             jsonFetch(`/scout/${scout.id}`, scout, 'PUT')
