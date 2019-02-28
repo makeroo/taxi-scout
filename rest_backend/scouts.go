@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+/*
 func (server *RestServer) Scouts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -15,6 +16,7 @@ func (server *RestServer) Scouts(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(405)
 	}
 }
+*/
 
 func (server *RestServer) Scout(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -51,7 +53,14 @@ func (server *RestServer) Scout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		scoutId, err := server.Dao.UpdateScout(scout, myId)
+		if scout.Id < 0 {
+			server.Logger.Errorw("update scout without scout id")
+
+			server.writeResponse(400, ts_errors.BadRequest, w)
+			return
+		}
+
+		scoutId, err := server.Dao.InsertOrUpdateScout(scout, myId)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
