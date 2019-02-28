@@ -31,10 +31,6 @@ class Children extends Component {
     constructor(props) {
         super(props);
 
-/*        this.state = {
-            editingLineIdx: -1,
-        };
-*/
         this.handleScoutNameChange = this.handleScoutNameChange.bind(this);
         this.handleAddScout = this.handleAddScout.bind(this);
         this.handleBack = this.handleBack.bind(this);
@@ -65,40 +61,8 @@ class Children extends Component {
 
     handleAddScout() {
         this.props.editScout(this.props.account, -1);
-/*        this.saveIfNeeded()
-            .then(() => {
-                const scouts = this.props.account.scouts;
-
-                scouts.push({
-                    name: '',
-                });
-
-                this.setState({
-                    ...this.state,
-                    editingLineIdx: scouts.length - 1
-                })
-            })
-            .catch((error) => {
-                console.log('todo', error);
-            });*/
     }
-/*
-    saveIfNeeded() {
-        if (this.state.editingLineIdx < 0)
-            return Promise.resolve();
 
-        const scouts = this.props.account.scouts;
-        const scout = scouts[this.state.editingLineIdx];
-
-        if (scout.name === this.state.name)
-            return Promise.resolve();
-
-        return scout.id === undefined ?
-            jsonFetch('/scouts', scout)
-            :
-            jsonFetch(`/scout/${scout.id}`, scout, 'PUT');
-    }
-*/
     render() {
         const account = this.props.account;
 
