@@ -9,13 +9,13 @@ const ERROR_SERVER_ERROR = {
     error: SERVER_ERROR
 };
 
-export function jsonFetch(path, payload) {
+export function jsonFetch(path, payload, method) {
     let fetch_config = {
         credentials: 'same-origin',
     };
 
     if (payload) {
-        fetch_config.method = 'POST';
+        fetch_config.method = method || 'POST';
         fetch_config.body = JSON.stringify(payload);
     }
 
