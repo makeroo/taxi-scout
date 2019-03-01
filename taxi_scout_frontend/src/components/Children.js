@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {fetchMyAccount, editScout, scoutUpdateName} from "../actions/accounts";
+import {fetchMyAccount, editScout, scoutUpdateName, saveEditedScoutIfChanged} from "../actions/accounts";
 import {connect} from "react-redux";
 
 
@@ -23,6 +23,10 @@ const mapDispatchToProps = (dispatch) => {
         editScoutName: (newName) => {
             dispatch(scoutUpdateName(newName))
         },
+
+        saveEditedScoutIfChanged: (account) => {
+            return dispatch(saveEditedScoutIfChanged(account))
+        }
     };
 };
 
@@ -42,8 +46,11 @@ class Children extends Component {
     }
 
     handleBack() {
-        // TODO: save if needed
-        this.props.history.push("/account/");
+        // TODO: open modal
+
+        this.props.saveEditedScoutIfChanged(this.props.account).then((succeded) => {
+            this.props.history.push("/account/");
+        }); // TODO: finally close modal
     }
 
     handleScoutNameChange(evt) {

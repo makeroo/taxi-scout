@@ -199,3 +199,39 @@ export function editScout(account, index) {
         }
     };
 }
+
+export function saveEditedScoutIfChanged(account) {
+    return (dispatch) => {
+        const scouts = account.scouts;
+        const scoutEditing = account.scoutEditing;
+
+        if (!scoutEditing) {
+            return Promise.resolve(true);
+        }
+
+        const scout = scouts[scoutEditing.index];
+
+        if (scout.id === -1) {
+            return jsonFetch(`/account/${account.data.id}/scouts`, scout)
+                .then(() => {
+                    // FIXME: set new scout's id
+
+                    return true;
+                })
+                .catch((error) => {
+                    dispatch(scoutSaveFailed(error));
+
+                    return false;
+                });
+        } else if (scoutEditing.origName === undefined || scoutEditing.origName === scout.name) {
+            return Promise.resolve(true);
+        } else {
+            return jsonFetch(`/scout/${scout.id}`, scout, 'PUT')
+                .catch((error) => {
+                    dispatch(scoutSaveFailed(error));
+
+                    return false;
+                });
+        }
+    };
+}
