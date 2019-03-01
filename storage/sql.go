@@ -524,15 +524,17 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 
 	var r int32 = 0
 
+	// we check for group both in insert and update
+	// because we support group change in update
+	err = db.checkPermission(tutorId, scout.GroupId, PermissionMember, tx)
+
+	if err != nil {
+		db.rollback(tx)
+		return 0, err
+	}
+
 	if scout.Id < 0 {
 		// insert a new scout
-		err = db.checkPermission(tutorId, scout.GroupId, PermissionMember, tx)
-
-		if err != nil {
-			db.rollback(tx)
-			return 0, err
-		}
-
 
 		stmt, err := db.stmt("insert_scout", tx)
 
@@ -565,13 +567,19 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 
 		stmt, err = db.stmt("add_scout", tx)
 
+		if err != nil {
+			db.rollback(tx)
+
+			return 0, err
+		}
+
 		_, err = stmt.Exec(tutorId, r)
 
-		/*if err != nil {
+		if err != nil {
 			db.rollback(tx)
-			return 0, err
-		}*/
 
+			return 0, err
+		}
 	} else {
 		stmt, err := db.stmt("check_if_tutor", tx)
 
@@ -595,15 +603,15 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 
 		stmt, err = db.stmt("update_scout", tx)
 
-		_, err = stmt.Exec(scout.Name, scout.Id, scout.GroupId)
+		_, err = stmt.Exec(scout.Name, scout.GroupId, scout.Id)
+
+		if err != nil {
+			db.rollback(tx)
+
+			return 0, err
+		}
 
 		r = scout.Id
-	}
-
-	if err != nil {
-		db.rollback(tx)
-
-		return 0, err
 	}
 
 	return r, db.commit(tx)
@@ -634,7 +642,7 @@ func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
 				return nil, err
 			}
 
-			db.preparedStatements[sqlQuery] = stmt
+			db.preparedStatements[query] = stmt
 		}
 	}
 
