@@ -127,10 +127,10 @@ class Account extends Component {
 
         let scoutsSummary = '';
 
-        const scouts = data.scouts;
+        const scouts = account.scouts;
 
         if (scouts) {
-            scoutsSummary = scouts.map(function (s) {return s.name}).join()
+            scoutsSummary = scouts.map(function (s) {return s.name}).join(', ')
         }
 
         return (
