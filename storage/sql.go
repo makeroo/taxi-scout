@@ -617,6 +617,73 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 	return r, db.commit(tx)
 }
 
+func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := db.stmt("remove_scout_tutor", tx)
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	res, err := stmt.Exec(scoutId, tutorId)
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	count, err := res.RowsAffected()
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	stmt, err = db.stmt("count_tutors", tx)
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	row := stmt.QueryRow(scoutId)
+
+	err = row.Scan(&count)
+
+	if err != nil {
+		db.rollback(tx)
+		return err
+	}
+
+	if count == 0 {
+		stmt, err = db.stmt("remove_scout", tx)
+
+		if err != nil {
+			db.rollback(tx)
+			return err
+		}
+
+		_, err = stmt.Exec(scoutId)
+
+		if err != nil {
+			db.rollback(tx)
+			return err
+		}
+	}
+
+	return db.commit(tx)
+}
+
 func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
 	db.preparedStatementsLock.RLock()
 	stmt, found := db.preparedStatements[query]

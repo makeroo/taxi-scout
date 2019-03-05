@@ -42,9 +42,12 @@ SELECT s.id, s.name, s.group_id
 `,
 
 	"add_scout": "INSERT INTO tutor_scout (tutor_id, scout_id) VALUES (?, ?)",
+	"remove_scout_tutor": "DELETE FROM tutor_scout WHERE scout_id = ? AND tutor_id = ?",
+	"count_tutors": "SELECT count(*) FROM tutor_scout WHERE scout_id = ?",
 
 	"check_if_tutor": "SELECT count(*) FROM tutor_scout WHERE scout_id=? AND tutor_id=?",
 
 	"insert_scout": "INSERT INTO scout (name, group_id) VALUES (?, ?)",
 	"update_scout": "UPDATE scout SET name = ?, group_id = ? WHERE id = ?",
+	"remove_scout": "DELETE FROM scout WHERE id = ?",
 }
