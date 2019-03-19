@@ -169,6 +169,46 @@ Permission: a user can query its own account record.
 *Response*: []SCOUT
 
 
+**URL**: /account/authenticate
+
+**Method**: POST
+
+*Request*:
+{
+* email: STRING
+* pwd: STRING
+
+
+*Response*: ACCOUNT
+
+
+### Invitations
+
+**URL**: `/invitations`
+
+**Method**: POST
+
+Create a new invitation.
+When ivoked without being autenticated, this method is used to implement
+"forgot password" function: a new invitation is created only if
+email owner is a member of a scout group.
+
+Required role: public
+
+*Request*:
+
+* email: EMAIL
+
+  Email address of invitation receiver.
+
+*Response*:
+
+* authenticated: BOOL
+                 true if a valid authentcation cookie has been found
+                 and authenticated account email matches given one.
+                 In this case no invitation token has been created.
+* expires: DATETIME
+
 
 
 TODO FROM HERE
@@ -201,14 +241,6 @@ error: invitation_expired /* HTTP: gone */
 // TODO: weak password?
 
 
-/account/authenticate
-POST:
-{
-login: STRING
-pwd: STRING
-}
-
-Response: same as /account/:id
 
 
 /api/v1/account/:id/scouts
@@ -273,35 +305,3 @@ COORDINATION:
     }
   ]
 }
-
-
-
-
-
-### Invitations
-
-**URL**: `/invitations`
-
-**Method**: POST
-
-Create a new invitation.
-
-Required role: `excursion_manager`
-
-*Request*:
-
-* email: EMAIL
-
-  Email address of invitation receiver.
-
-* scout_group: INT
-
-  Scout group to be joined.
-
-*Response*:
-
-* token: UUID
-
-  New inviation identifier.
-
-* expires: DATETIME

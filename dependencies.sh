@@ -14,3 +14,6 @@ go get -u golang.org/x/crypto/bcrypt
 
 # Logging
 go get -u go.uber.org/zap
+
+# UUID
+go get github.com/google/uuid

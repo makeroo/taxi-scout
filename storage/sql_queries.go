@@ -9,10 +9,16 @@ var SqlQueries = map[string]string{
           a.id, a.name, a.address
      FROM invitation i
 LEFT JOIN account a ON i.email = a.email
-    WHERE i.token = ?
-`,
+    WHERE i.token = ?`,
 
 	"delete_invitation": "DELETE FROM invitation WHERE token = ?",
+	"create_invitation_for_existing_member": `
+INSERT INTO invitation (token, email, created_on, group_id)
+     SELECT ?, a.email, ?, g.group_id
+       FROM account a
+       JOIN account_grant g ON g.account_id=a.id
+      WHERE a.email = ?
+      LIMIT 1`,
 
 	"create_account_from_invitation": "INSERT INTO account (email) SELECT email FROM invitation WHERE token = ?",
 

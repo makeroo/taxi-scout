@@ -3,6 +3,8 @@ package storage
 import "github.com/kataras/iris/core/errors"
 
 type Datastore interface {
+	CreateInvitationForExistingMember (email string) (*Invitation, error)
+
 	QueryInvitationToken (token string) (*Account, bool, error)
 
 	QueryAccounts(group int32, userId int32) ([]*Account, error)

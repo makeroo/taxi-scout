@@ -6,6 +6,7 @@ import (
 	"math"
 	"sync"
 	"time"
+	"github.com/google/uuid"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -249,6 +250,58 @@ func (db *SqlDatastore) QueryInvitationToken (token string) (*Account, bool, err
 	}
 
 	return account, found, err
+}
+
+func (db *SqlDatastore) CreateInvitationForExistingMember (email string) (*Invitation, error) {
+	tx, err := db.Begin()
+
+	stmt, err := db.stmt("create_invitation_for_existing_member", tx)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return nil, err
+	}
+
+	tokenUUID, err := uuid.NewRandom()
+
+	if err != nil {
+		db.rollback(tx)
+
+		return nil, err
+	}
+
+	token := tokenUUID.String()
+
+	createdOn := time.Now()
+
+	res, err := stmt.Exec(token, createdOn, email)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return nil, err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+
+	if err != nil {
+		db.rollback(tx)
+
+		return nil, err
+	}
+
+	if rowsAffected == 0 {
+		db.rollback(tx)
+
+		return nil, ts_errors.Forbidden
+	}
+
+	return &Invitation{
+		Token:token,
+		Email:email,
+		Expires:createdOn.Add(db.InvitationDuration),
+	}, db.commit(tx)
 }
 
 func (db *SqlDatastore) QueryAccounts(group int32, userId int32) ([]*Account, error) {
