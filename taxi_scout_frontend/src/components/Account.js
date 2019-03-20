@@ -1,7 +1,9 @@
 import React, {Component} from 'react';
 import Modal from 'react-modal';
 import {connect} from "react-redux";
+import {Link} from "react-router-dom";
 import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
+import {BAD_REQUEST, SERVICE_NOT_AVAILABLE} from "../constants/errors";
 //import {jsonFetch, parseError} from "../utils/json_fetch";
 
 
@@ -114,8 +116,34 @@ class Account extends Component {
             return <p>Loading...</p>;
         }
 
-        if (account.error) {
-            return <p>Error... TODO</p>;
+        const error = account.error;
+
+        if (error) {
+            if (error.error === BAD_REQUEST) {
+                return (
+                    <div>
+                        <p>Session expired (probably)</p>
+                        <p>Please <Link to="/login">login again</Link></p>
+                    </div>
+                );
+            }
+
+            if (error.error === SERVICE_NOT_AVAILABLE) {
+                return (
+                    <div>
+                        <p>Service not available.</p>
+                        <p>Retry later.</p>
+                    </div>
+                )
+            }
+
+            return (
+                <div>
+                    <p>Unexpected error.</p>
+                    <p>Something went wrong. Sometimes just reloading the page resolves the issue. If the problem
+                        persists then please contact system administrator.</p>
+                </div>
+            );
         }
 
         if (!account.data) {
