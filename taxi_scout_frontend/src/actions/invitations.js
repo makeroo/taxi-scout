@@ -42,3 +42,18 @@ export function checkToken(token) {
             });
     };
 }
+
+
+export function sendInvitation(email) {
+    return (dispatch) => {
+        dispatch(invitationIsLoading());
+
+        return jsonFetch('/invitations', { email }, 'POST')
+            .then(() => {
+                dispatch(invitationFetchDataSuccess(null))
+            })
+            .catch((error) => {
+                dispatch(invitationHasErrored(parseError(error)));
+            });
+    }
+}

@@ -1,3 +1,24 @@
+login / invitation:
+* implement forgot password too:
+   once received invitation, change welcome message
+    into something like: "your password has been resetted, etc."
+    FIX: account page, add password change function
+* invitations: unit tests both on dao and rest components
+  check "account w/o password workflow":
+   - invitation => new account
+   - cookie expires (the account has no password)
+   - login cant be completed
+   - select forgot password (implement it with a new invitation:YES
+     because the account already exists and is member of a group!)
+
+
+scouts editing:
+ * obsolete initial state: discard scout property
+ * selected group is missing: when adding a scout, scout group must be specified
+   solution 1: support 1 scout group per account at most
+   solution 2: evolve ui, add group selector (if needed)
+
+
 async actions other than initial setup (that is "get"):
 * choose an approach between "full redux" and "component logic"
  PRO full redux: testable
@@ -18,3 +39,5 @@ pickup summary: hide scouts that not partecipate
 include google material icons as (npm?) dependency
 
 study: websockets both react and go sides
+
+test unit

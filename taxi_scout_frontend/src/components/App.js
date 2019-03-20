@@ -5,6 +5,8 @@ import Invitation from "./Invitation";
 import Account from "./Account";
 import Excursion from "./Excursion";
 import Children from "./Children";
+import Login from "./Login";
+import ForgotPassword from "./ForgotPassword";
 import './App.scss';
 
 
@@ -33,6 +35,8 @@ class App extends Component {
                     */}
 
                     <Route path="/" exact component={Home}/>
+                    <Route path="/login" component={Login}/>
+                    <Route path="/forgot-password" component={ForgotPassword}/>
                     <Route path="/invitation/:token" component={Invitation}/>
                     <Route path="/account/" component={Account}/>
                     <Route path="/excursion/" component={Excursion}/>
