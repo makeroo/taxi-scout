@@ -16,7 +16,7 @@ func (error *RestError) Json () ([]byte, error) {
 	})
 }
 
-var BadRequest = RestError{errors.New("forbidden"), 400}
+var BadRequest = RestError{errors.New("bad_request"), 400}
 var NotAuthorized = RestError{errors.New("not_authorized"), 401}
 var Forbidden = RestError{errors.New("forbidden"), 403}
 var NotFound = RestError{errors.New("not_found"), 404}
