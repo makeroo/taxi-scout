@@ -8,7 +8,3 @@ type Invitation struct {
 	Expires time.Time `json:"expires"`
 	ScoutGroup *ScoutGroup `json:"scout_group"`
 }
-
-func NewInvitation() *Invitation {
-	return &Invitation{"", "", time.Time{}, nil}
-}

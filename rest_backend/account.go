@@ -77,7 +77,7 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 		invitationToken := InvitationToken{}
 
-		err := decoder.Decode(invitationToken)
+		err := decoder.Decode(&invitationToken)
 
 		if err != nil {
 			server.Logger.Debugw("InvitationToken decoding failed",
