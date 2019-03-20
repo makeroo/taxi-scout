@@ -46,29 +46,41 @@ export function accountInfoFetchDataSuccess(groups, scouts) {
     };
 }
 
+function completeAccountLoading(dispatch, fetchPromise) {
+    return fetchPromise.then((account) => {
+        dispatch(accountFetchDataSuccess(account));
+
+        return Promise.all([
+            jsonFetch(`/account/${account.id}/groups`),
+            jsonFetch(`/account/${account.id}/scouts`)
+        ]);
+    }).then((responses) => {
+        let groups = responses[0];
+        let scouts = responses[1];
+
+        dispatch(accountInfoFetchDataSuccess(groups, scouts));
+    }).catch((error) => {
+        dispatch(accountHasErrored(parseError(error)));
+    });
+}
+
 export function fetchMyAccount() {
     return (dispatch) => {
         dispatch(accountIsLoading());
 
-        return jsonFetch('/account/me')
-            .then((account) => {
-                dispatch(accountFetchDataSuccess(account));
+        return completeAccountLoading(dispatch, jsonFetch('/account/me'));
+    };
+}
 
-                return Promise.all([
-                    jsonFetch(`/account/${account.id}/groups`),
-                    jsonFetch(`/account/${account.id}/scouts`)
-                ]);
-            })
-            .then((responses) => {
-                let groups = responses[0];
-                let scouts = responses[1];
+export function signIn(email, pwd) {
+    return (dispatch) => {
+        dispatch(accountIsLoading());
 
-                dispatch(accountInfoFetchDataSuccess(groups, scouts));
-            })
-            .catch((error) => {
-                dispatch(accountHasErrored(parseError(error)));
-            });
-    }
+        return completeAccountLoading(dispatch, jsonFetch('/accounts/authenticate', {
+            email,
+            pwd
+        }, 'POST'));
+    };
 }
 
 // account editing
