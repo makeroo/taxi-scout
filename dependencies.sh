@@ -17,3 +17,7 @@ go get -u go.uber.org/zap
 
 # UUID
 go get github.com/google/uuid
+
+# unit testing
+go get github.com/golang/mock/gomock
+go get github.com/golang/mock/mockgen
