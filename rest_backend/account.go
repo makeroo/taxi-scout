@@ -41,10 +41,15 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 		userId, err := server.checkUserIdCookie(r)
 
-		if err == http.ErrNoCookie {
-			server.writeResponse(401, ts_errors.NotAuthorized, w)
+		switch t := err.(type) {
+		case ts_errors.RestError:
+			server.writeResponse(t.Code, t, w)
 			return
-		} else if err != nil {
+
+		case nil:
+			break
+
+		default:
 			server.Logger.Debugw("can't decode user cookie",
 				"err", err)
 
