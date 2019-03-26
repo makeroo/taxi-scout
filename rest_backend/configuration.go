@@ -1,8 +1,13 @@
 package rest_backend
 
-import "github.com/gorilla/securecookie"
+
+type CookieManager interface {
+	Encode(name string, value interface{}) (string, error)
+	Decode(name, value string, dst interface{}) error
+}
+
 
 type Configuration struct {
-	SecureCookies *securecookie.SecureCookie
+	SecureCookies CookieManager
 	HttpsCookies bool
 }
