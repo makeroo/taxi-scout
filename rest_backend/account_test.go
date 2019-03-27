@@ -6,6 +6,7 @@ import (
 	"github.com/makeroo/taxi_scout/mocks"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/makeroo/taxi_scout/storage"
@@ -13,17 +14,16 @@ import (
 )
 
 
-func TestAccounts(t *testing.T) {
+func serverSetup(t *testing.T) (mockCtrl *gomock.Controller, mockDatastore *mocks.MockDatastore, mockCookieManager *mocks.MockCookieManager, server *RestServer) {
 	logger := zap.NewExample().Sugar()
 
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
+	mockCtrl = gomock.NewController(t)
 
-	mockDatastore := mocks.NewMockDatastore(mockCtrl)
+	mockDatastore = mocks.NewMockDatastore(mockCtrl)
 
-	mockCookieManager := mocks.NewMockCookieManager(mockCtrl)
+	mockCookieManager = mocks.NewMockCookieManager(mockCtrl)
 
-	server := &RestServer{
+	server = &RestServer{
 		Dao:    mockDatastore,
 		Logger: logger,
 		Configuration: Configuration{
@@ -31,6 +31,40 @@ func TestAccounts(t *testing.T) {
 			HttpsCookies: false,
 		},
 	}
+
+	return
+}
+
+func testSuccessfulResponse (t *testing.T, response *httptest.ResponseRecorder, expectedValue interface{}, decoderFunc func (decoder *json.Decoder) (interface{}, error)) {
+	if code := response.Code; code != 200 {
+		t.Errorf("http query failed: expected 200 received %v", code)
+		return
+	}
+
+	// reflect approach does NOT work: interf type is interface{} instead of an actual type
+	// eg. []storage.Account
+//	expectedType := reflect.TypeOf(expectedValue)
+//	received := reflect.New(expectedType)
+//	elem := received.Elem()
+//	interf := elem.Interface()
+
+	decoder := json.NewDecoder(response.Body)
+
+	receivedData, err := decoderFunc(decoder)
+	if err != nil {
+		t.Errorf("json response decode failed: %v", err)
+		return
+	}
+
+	if !reflect.DeepEqual(receivedData, expectedValue) {
+		t.Errorf("mismatch http response: expected=%v received=%v", expectedValue, receivedData)
+		return
+	}
+}
+
+func TestAccounts(t *testing.T) {
+	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
+	defer mockCtrl.Finish()
 
 	gomock.InOrder(
 		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
@@ -40,7 +74,7 @@ func TestAccounts(t *testing.T) {
 				}),
 		mockDatastore.EXPECT().QueryAccounts(int32(1), int32(9)).
 			Return([]*storage.Account{
-				&storage.Account{1, "name", "email", "addr"},
+				{1, "name", "email", "addr"},
 			}, nil),
 		)
 
@@ -56,25 +90,12 @@ func TestAccounts(t *testing.T) {
 	handler := http.HandlerFunc(server.Accounts)
 	handler.ServeHTTP(recorder, request)
 
-	if recorder.Code != 200 {
-		t.Errorf("expected 200, found: %v", recorder.Code)
-	}
+	testSuccessfulResponse(t, recorder, []storage.Account{
+		{1, "name", "email", "addr"},
+	}, func (decoder *json.Decoder) (interface{}, error) {
+		var v []storage.Account
+		err := decoder.Decode(&v)
 
-	var resData []storage.Account
-
-	decoder := json.NewDecoder(recorder.Body)
-	if err := decoder.Decode(&resData); err != nil {
-		t.Errorf("json response decode failed: %v", err)
-	}
-
-	if len(resData) != 1 {
-		t.Errorf("expecting 1 accounts, found: %d", len(resData))
-	}
-
-	acc := resData[0]
-	expectedAcc := storage.Account{1, "name", "email", "addr"}
-
-	if acc != expectedAcc {
-		t.Errorf("wrong account: expecting %v, found %v", acc, expectedAcc)
-	}
+		return v, err
+	})
 }
