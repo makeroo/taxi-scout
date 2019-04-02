@@ -2,10 +2,13 @@ package storage
 
 import "github.com/kataras/iris/core/errors"
 
+const NoRequestingUser = int32(-1)
+
 type Datastore interface {
 	CreateInvitationForExistingMember (email string) (*Invitation, error)
 
-	QueryInvitationToken (token string) (*Account, bool, error)
+	// use NoRequestingUser if no user is authenticated, otherwise his/her id
+	QueryInvitationToken (token string, requestingUser int32) (*Account, bool, error)
 
 	QueryAccounts(group int32, userId int32) ([]*Account, error)
 

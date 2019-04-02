@@ -92,16 +92,19 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token)
+		userId, cookieErr := server.checkUserIdCookie(r)
+
+		if cookieErr != nil {
+			userId = storage.NoRequestingUser
+		}
+
+		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userId)
 
 		if err != nil {
-			// ok, something went wrong
-			// but if the user was authenticated then we return an account anyway
-			// why? because we want that reloading the invitation after having used
-			// it, thus being authenticated, bring the user to the home page.
-			// this logic could be transferred to the client but imho it is clearer
-			// to have it on the server although this huge comment seems to prove the contrary
-			userId, cookieErr := server.checkUserIdCookie(r)
+			if err == ts_errors.StokenToken {
+				server.writeResponse(ts_errors.StokenToken.Code, err, w)
+				return
+			}
 
 			if cookieErr == nil {
 				server.Logger.Debugw("ignoring invitation error, using authentication cookie",
@@ -141,12 +144,14 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		server.setUserCookie(account.Id, w)
+		if cookieErr != nil {
+			server.setUserCookie(account.Id, w)
+		}
 
 		server.writeResponse(200,
 			map[string]interface{}{
 				"id": account.Id,
-				"authenticated": true,
+				"authenticated": cookieErr != nil,
 				"new_account": !found,
 			},
 			w)

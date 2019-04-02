@@ -22,4 +22,12 @@ var Forbidden = RestError{errors.New("forbidden"), 403}
 var NotFound = RestError{errors.New("not_found"), 404}
 var Expired = RestError{errors.New("expired"), 410}
 
+// Stoken token error occurs when processing an invitation token while a user
+// has been already authenticated and the receiving invitation email does not
+// match authenticated user's email.
+var StokenToken = RestError{errors.New("stolen_token"), 403}
+
+// An unexpected and unrecoverable error. It could be either a system error,
+// eg. database unreachable, or a bug.
+// TODO: in the future add indication whenever possible if it is worth retrying later or not.
 var ServerError = RestError{errors.New("server_error"), 500}
