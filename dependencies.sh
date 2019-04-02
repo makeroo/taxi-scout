@@ -21,3 +21,4 @@ go get github.com/google/uuid
 # unit testing
 go get github.com/golang/mock/gomock
 go get github.com/golang/mock/mockgen
+go get github.com/DATA-DOG/go-sqlmock

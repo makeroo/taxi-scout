@@ -3,7 +3,7 @@ package storage
 import (
 	"testing"
 
-	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
+	sqlmock "github.com/DATA-DOG/go-sqlmock"
 
 	"go.uber.org/zap"
 )
@@ -11,17 +11,23 @@ import (
 func TestSqlDatastore(t *testing.T) {
 	logger := zap.NewExample().Sugar()
 
-	db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("sqlmock failed: error=%s", err)
 	}
 	defer db.Close()
 
 	//mock.ExpectBegin()
-	mock.ExpectPrepare("SELECT id, name, email FROM account")
-	mock.ExpectQuery("SELECT id, name, email FROM account").
-		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email"}).
-			AddRow(45, "pippo", "pippo@dom"))
+	mock.ExpectPrepare("SELECT count(*) FROM account_grant WHERE account_id = ? AND group_id = ? AND permission_id = ?")
+	mock.ExpectQuery("SELECT count(*) FROM account_grant WHERE account_id = ? AND group_id = ? AND permission_id = ?").
+		WithArgs(3, 7, 1).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).
+			AddRow(1))
+	mock.ExpectPrepare("SELECT a.id, a.name, a.email, a.address FROM account a JOIN account_grant g ON g.account_id = a.id WHERE g.group_id = ?")
+	mock.ExpectQuery("SELECT a.id, a.name, a.email, a.address FROM account a JOIN account_grant g ON g.account_id = a.id WHERE g.group_id = ?").
+		WithArgs(7).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "name", "email", "address"}).
+			AddRow(45, "pippo", "pippo@dom", "addr"))
 	//mock.ExpectCommit()
 
 	dao, err := NewSqlDatastorec("mysql", db, logger)
@@ -29,7 +35,7 @@ func TestSqlDatastore(t *testing.T) {
 		t.Fatalf("failed to create SqlDatastore: error=%s", err)
 	}
 
-	accounts, err := dao.QueryAccounts()
+	accounts, err := dao.QueryAccounts(7, 3)
 	if err != nil {
 		t.Fatalf("QueryAccounts failed: error=%s", err)
 	}
@@ -38,11 +44,8 @@ func TestSqlDatastore(t *testing.T) {
 		t.Errorf("expecting 1 accounts, found: %d", len(accounts))
 	}
 
-	expectedAccount := NewAccount()
-	expectedAccount.Id = 45
-	expectedAccount.Name = "pippo"
-	expectedAccount.Email = "pippo@dom"
-	if *accounts[0] != *expectedAccount {
+	expectedAccount := Account{45, "pippo", "pippo@dom", "addr"}
+	if *accounts[0] != expectedAccount {
 		t.Errorf("account mismatch: expected %v, found %v", expectedAccount, accounts[0])
 	}
 
