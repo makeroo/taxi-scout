@@ -274,6 +274,10 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 func (db *SqlDatastore) CreateInvitationForExistingMember (email string) (*Invitation, error) {
 	tx, err := db.Begin()
 
+	if err != nil {
+		return nil, err
+	}
+
 	stmt, err := db.stmt("create_invitation_for_existing_member", tx)
 
 	if err != nil {
