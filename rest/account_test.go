@@ -1,24 +1,24 @@
-package rest_backend
+package rest
 
 import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/golang/mock/gomock"
-	"github.com/makeroo/taxi_scout/mocks"
-	"github.com/makeroo/taxi_scout/ts_errors"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/makeroo/taxi_scout/mocks"
+	"github.com/makeroo/taxi_scout/ts_errors"
+
 	"github.com/makeroo/taxi_scout/storage"
 	"go.uber.org/zap"
 )
 
-
-func serverSetup(t *testing.T) (mockCtrl *gomock.Controller, mockDatastore *mocks.MockDatastore, mockCookieManager *mocks.MockCookieManager, server *RestServer) {
+func serverSetup(t *testing.T) (mockCtrl *gomock.Controller, mockDatastore *mocks.MockDatastore, mockCookieManager *mocks.MockCookieManager, server *Server) {
 	logger := zap.NewExample().Sugar()
 
 	mockCtrl = gomock.NewController(t)
@@ -27,26 +27,26 @@ func serverSetup(t *testing.T) (mockCtrl *gomock.Controller, mockDatastore *mock
 
 	mockCookieManager = mocks.NewMockCookieManager(mockCtrl)
 
-	server = &RestServer{
+	server = &Server{
 		Dao:    mockDatastore,
 		Logger: logger,
 		Configuration: Configuration{
 			SecureCookies: mockCookieManager,
-			HttpsCookies: false,
+			HTTPSCookies:  false,
 		},
 	}
 
 	return
 }
 
-func cookieSetup (request *http.Request, recorder *httptest.ResponseRecorder, name string, value string) {
+func cookieSetup(request *http.Request, recorder *httptest.ResponseRecorder, name string, value string) {
 	http.SetCookie(recorder, &http.Cookie{Name: name, Value: value})
 	for _, v := range recorder.HeaderMap["Set-Cookie"] {
 		request.Header.Add("Cookie", v)
 	}
 }
 
-func testResponse (t *testing.T, response *httptest.ResponseRecorder, expectedCode int, expectedValue interface{}, decoderFunc func (decoder *json.Decoder) (interface{}, error)) {
+func testResponse(t *testing.T, response *httptest.ResponseRecorder, expectedCode int, expectedValue interface{}, decoderFunc func(decoder *json.Decoder) (interface{}, error)) {
 	if code := response.Code; code != expectedCode {
 		t.Errorf("http query failed: expected=%v received=%v", expectedCode, code)
 		return
@@ -60,10 +60,10 @@ func testResponse (t *testing.T, response *httptest.ResponseRecorder, expectedCo
 
 	// reflect approach does NOT work: interf type is interface{} instead of an actual type
 	// eg. []storage.Account
-//	expectedType := reflect.TypeOf(expectedValue)
-//	received := reflect.New(expectedType)
-//	elem := received.Elem()
-//	interf := elem.Interface()
+	//	expectedType := reflect.TypeOf(expectedValue)
+	//	received := reflect.New(expectedType)
+	//	elem := received.Elem()
+	//	interf := elem.Interface()
 
 	decoder := json.NewDecoder(response.Body)
 
@@ -89,12 +89,12 @@ func TestAccountsOk(t *testing.T) {
 			Return(nil).
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
-				}),
+			}),
 		mockDatastore.EXPECT().QueryAccounts(int32(1), int32(9)).
 			Return([]*storage.Account{
-				{1, "name", "email", "addr"},
+				{ID: 1, Name: "name", Email: "email", Address: "addr"},
 			}, nil),
-		)
+	)
 
 	request := httptest.NewRequest("GET", "/accounts?group=1", nil)
 
@@ -106,8 +106,8 @@ func TestAccountsOk(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 200, []storage.Account{
-		{1, "name", "email", "addr"},
-	}, func (decoder *json.Decoder) (interface{}, error) {
+		{ID: 1, Name: "name", Email: "email", Address: "addr"},
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v []storage.Account
 		err := decoder.Decode(&v)
 
@@ -129,8 +129,8 @@ func TestAccountsNoCookie(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 401, map[string]string{
-		"error" : "not_authorized",
-	}, func (decoder *json.Decoder) (interface{}, error) {
+		"error": "not_authorized",
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]string
 		err := decoder.Decode(&v)
 
@@ -158,7 +158,7 @@ func TestAccountsIllegalCookie(t *testing.T) {
 
 	testResponse(t, recorder, 400, map[string]string{
 		"error": "bad_request",
-	}, func (decoder *json.Decoder) (interface{}, error) {
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]string
 		err := decoder.Decode(&v)
 
@@ -172,22 +172,22 @@ func TestAccountsPostNewAccount(t *testing.T) {
 
 	gomock.InOrder(
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(&storage.Account{
-			1, "name", "email", "addr",
+			ID: 1, Name: "name", Email: "email", Address: "addr",
 		}, false, nil),
 		mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
-/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
-			Return(nil).
-			Do(func(name string, value string, dst *int32) {
-				*dst = 9
-			}),
-		mockDatastore.EXPECT().QueryAccounts(int32(1), int32(9)).
-			Return([]*storage.Account{
-				{1, "name", "email", "addr"},
-			}, nil),*/
+		/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
+					Return(nil).
+					Do(func(name string, value string, dst *int32) {
+						*dst = 9
+					}),
+				mockDatastore.EXPECT().QueryAccounts(int32(1), int32(9)).
+					Return([]*storage.Account{
+						{1, "name", "email", "addr"},
+					}, nil),*/
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -200,10 +200,10 @@ func TestAccountsPostNewAccount(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 200, map[string]interface{}{
-		"id": float64(1), // FIXME: this is float32 on 32bit os
+		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": true,
-		"new_account": true,
-	}, func (decoder *json.Decoder) (interface{}, error) {
+		"new_account":   true,
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
 
@@ -217,7 +217,7 @@ func TestAccountsPostNewGroup(t *testing.T) {
 
 	gomock.InOrder(
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(&storage.Account{
-			1, "name", "email", "addr",
+			ID: 1, Name: "name", Email: "email", Address: "addr",
 		}, true, nil),
 		mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 		/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
@@ -231,8 +231,8 @@ func TestAccountsPostNewGroup(t *testing.T) {
 					}, nil),*/
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -245,10 +245,10 @@ func TestAccountsPostNewGroup(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 200, map[string]interface{}{
-		"id": float64(1), // FIXME: this is float32 on 32bit os
+		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": true,
-		"new_account": false,
-	}, func (decoder *json.Decoder) (interface{}, error) {
+		"new_account":   false,
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
 
@@ -265,12 +265,12 @@ func TestAccountsPostNewAccountAlreadyAuthenticated(t *testing.T) {
 			Return(nil).
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
-				}),
+			}),
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, ts_errors.StokenToken),
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -284,7 +284,7 @@ func TestAccountsPostNewAccountAlreadyAuthenticated(t *testing.T) {
 
 	testResponse(t, recorder, 403, map[string]string{
 		"error": "stolen_token",
-	}, func (decoder *json.Decoder) (interface{}, error) {
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]string
 		err := decoder.Decode(&v)
 
@@ -303,12 +303,12 @@ func TestAccountsPostNewGroupAlreadyAuthenticated(t *testing.T) {
 				*dst = 9
 			}),
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(&storage.Account{
-			1, "name", "email", "addr",
+			ID: 1, Name: "name", Email: "email", Address: "addr",
 		}, true, nil),
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -321,10 +321,10 @@ func TestAccountsPostNewGroupAlreadyAuthenticated(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 200, map[string]interface{}{
-		"id": float64(1), // FIXME: this is float32 on 32bit os
+		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": false,
-		"new_account": false,
-	}, func (decoder *json.Decoder) (interface{}, error) {
+		"new_account":   false,
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
 
@@ -350,8 +350,8 @@ func TestAccountsPostInvalidTokenNoCookie(t *testing.T) {
 					}, nil),*/
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -365,7 +365,7 @@ func TestAccountsPostInvalidTokenNoCookie(t *testing.T) {
 
 	testResponse(t, recorder, 404, map[string]interface{}{
 		"error": "not_found",
-	}, func (decoder *json.Decoder) (interface{}, error) {
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
 
@@ -387,8 +387,8 @@ func TestAccountsPostInvalidTokenWithCookie(t *testing.T) {
 		//mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 	)
 
-	body, _ := json.Marshal(InvitationToken{
-		Token:"xxx",
+	body, _ := json.Marshal(AccountsRequest{
+		Token: "xxx",
 	})
 
 	request := httptest.NewRequest("POST", "/accounts", bytes.NewReader(body))
@@ -401,10 +401,10 @@ func TestAccountsPostInvalidTokenWithCookie(t *testing.T) {
 	handler.ServeHTTP(recorder, request)
 
 	testResponse(t, recorder, 200, map[string]interface{}{
-		"id": float64(9),
-		"new_account": false,
+		"id":            float64(9),
+		"new_account":   false,
 		"authenticated": false,
-	}, func (decoder *json.Decoder) (interface{}, error) {
+	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
 

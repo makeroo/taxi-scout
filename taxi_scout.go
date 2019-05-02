@@ -11,7 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/makeroo/taxi_scout/rest_backend"
+	"github.com/makeroo/taxi_scout/rest"
 	"github.com/makeroo/taxi_scout/storage"
 )
 
@@ -22,7 +22,7 @@ func main() {
 	port := flag.Int("http-port", 8008, "HTTP port to listen to")
 	secure := flag.Bool("secure", false, "Publish secure cookies (requires https)")
 
-	dao, err := storage.NewSqlDatastore("mysql", "taxi_scout_user:taxi_scout_pwd@/taxi_scout?parseTime=true", logger)
+	dao, err := storage.NewSQLDatastore("mysql", "taxi_scout_user:taxi_scout_pwd@/taxi_scout?parseTime=true", logger)
 	defer dao.Close()
 
 	if err != nil {
@@ -37,25 +37,25 @@ func main() {
 
 	secureCookies := securecookie.New(hashKey, blockKey)
 
-	server := &rest_backend.RestServer{
+	server := &rest.Server{
 		Dao:    dao,
 		Logger: logger,
-		Configuration: rest_backend.Configuration{
+		Configuration: rest.Configuration{
 			SecureCookies: secureCookies,
-			HttpsCookies: *secure,
+			HTTPSCookies: *secure,
 		},
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/invitations", rest_backend.DisableBrowserCache(server.Invitations))
-	r.HandleFunc("/accounts", rest_backend.DisableBrowserCache(server.Accounts))
-	r.HandleFunc("/account/{id:[0-9]+|me}", rest_backend.DisableBrowserCache(server.Account))
-	r.HandleFunc("/accounts/authenticate", rest_backend.DisableBrowserCache(server.AccountsAuthenticate))
-	r.HandleFunc("/account/{id:[0-9]+}/password", rest_backend.DisableBrowserCache(server.AccountPassword))
-	r.HandleFunc("/account/{id:[0-9]+}/groups", rest_backend.DisableBrowserCache(server.AccountGroups))
-	r.HandleFunc("/account/{id:[0-9]+}/scouts", rest_backend.DisableBrowserCache(server.AccountScouts))
-//	r.HandleFunc("/scouts", rest_backend.DisableBrowserCache(server.Scouts))
-	r.HandleFunc("/scout/{id:[0-9]+}", rest_backend.DisableBrowserCache(server.Scout))
+	r.HandleFunc("/invitations", rest.DisableBrowserCache(server.Invitations))
+	r.HandleFunc("/accounts", rest.DisableBrowserCache(server.Accounts))
+	r.HandleFunc("/account/{id:[0-9]+|me}", rest.DisableBrowserCache(server.Account))
+	r.HandleFunc("/accounts/authenticate", rest.DisableBrowserCache(server.AccountsAuthenticate))
+	r.HandleFunc("/account/{id:[0-9]+}/password", rest.DisableBrowserCache(server.AccountPassword))
+	r.HandleFunc("/account/{id:[0-9]+}/groups", rest.DisableBrowserCache(server.AccountGroups))
+	r.HandleFunc("/account/{id:[0-9]+}/scouts", rest.DisableBrowserCache(server.AccountScouts))
+//	r.HandleFunc("/scouts", rest.DisableBrowserCache(server.Scouts))
+	r.HandleFunc("/scout/{id:[0-9]+}", rest.DisableBrowserCache(server.Scout))
 	http.Handle("/", r)
 
 	//fs := http.FileServer(http.Dir("static/"))

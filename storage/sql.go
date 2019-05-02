@@ -2,43 +2,46 @@ package storage
 
 import (
 	"database/sql"
-	"github.com/makeroo/taxi_scout/ts_errors"
 	"math"
 	"sync"
 	"time"
+
 	"github.com/google/uuid"
+	"github.com/makeroo/taxi_scout/ts_errors"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-
-type SqlDatastore struct {
+// SQLDatastore is a Datastore implementation based on SQL backend. Currently only MySQL has been tested.
+type SQLDatastore struct {
 	*sql.DB
-	Logger *zap.SugaredLogger
+	Logger             *zap.SugaredLogger
 	InvitationDuration time.Duration
 
-	preparedStatements map[string]*sql.Stmt
+	preparedStatements     map[string]*sql.Stmt
 	preparedStatementsLock *sync.RWMutex
 }
 
-func NewSqlDatastore(driver string, dataSourceName string, logger *zap.SugaredLogger) (*SqlDatastore, error) {
+// NewSQLDatastore builds a SQLDatastore instance connected do specified datasource.
+// Currently driver is ignored and only MySQL is supported.
+func NewSQLDatastore(driver string, dataSourceName string, logger *zap.SugaredLogger) (*SQLDatastore, error) {
 	db, err := sql.Open(driver, dataSourceName)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return NewSqlDatastorec(driver, db, logger)
+	return NewSQLDatastoreWithConnection(driver, db, logger)
 }
 
-func NewSqlDatastorec(driver string, dataSourceConnection *sql.DB, logger *zap.SugaredLogger) (*SqlDatastore, error) {
+func NewSQLDatastoreWithConnection(driver string, dataSourceConnection *sql.DB, logger *zap.SugaredLogger) (*SQLDatastore, error) {
 	if err := dataSourceConnection.Ping(); err != nil {
 		return nil, err
 	}
 
-	// FIXME: trasferirlo in un file di settings
-	return &SqlDatastore{
+	// TODO: use a configuration struct
+	return &SQLDatastore{
 		dataSourceConnection,
 		logger,
 		time.Duration(10) * time.Hour,
@@ -47,7 +50,7 @@ func NewSqlDatastorec(driver string, dataSourceConnection *sql.DB, logger *zap.S
 	}, nil
 }
 
-func (db *SqlDatastore) Close() {
+func (db *SQLDatastore) Close() {
 	for key, stmt := range db.preparedStatements {
 		//fmt.Println("Key:", key, "Value:", value)
 		err := stmt.Close()
@@ -60,7 +63,7 @@ func (db *SqlDatastore) Close() {
 	db.Close()
 }
 
-func (db *SqlDatastore) rollback(tx *sql.Tx) {
+func (db *SQLDatastore) rollback(tx *sql.Tx) {
 	err := tx.Rollback()
 
 	if err != nil {
@@ -68,7 +71,7 @@ func (db *SqlDatastore) rollback(tx *sql.Tx) {
 	}
 }
 
-func (db *SqlDatastore) commit(tx *sql.Tx) error {
+func (db *SQLDatastore) commit(tx *sql.Tx) error {
 	err := tx.Commit()
 
 	if err != nil {
@@ -82,7 +85,7 @@ func (db *SqlDatastore) commit(tx *sql.Tx) error {
 	return nil
 }
 
-func (db *SqlDatastore) execStmtAndRollbackOnFail (stmtName string, tx *sql.Tx, val ...interface{}) error {
+func (db *SQLDatastore) execStmtAndRollbackOnFail(stmtName string, tx *sql.Tx, val ...interface{}) error {
 	stmt, err := db.stmt(stmtName, tx)
 
 	if err != nil {
@@ -101,18 +104,18 @@ func (db *SqlDatastore) execStmtAndRollbackOnFail (stmtName string, tx *sql.Tx, 
 	return nil
 }
 
-func (db *SqlDatastore) CheckPermission (userId int32, groupId int32, permId int32) error {
-	return db.checkPermission(userId, groupId, permId, nil)
+func (db *SQLDatastore) CheckPermission(userID int32, groupID int32, permID int32) error {
+	return db.checkPermission(userID, groupID, permID, nil)
 }
 
-func (db *SqlDatastore) checkPermission (userId int32, groupId int32, permId int32, tx *sql.Tx) error {
+func (db *SQLDatastore) checkPermission(userID int32, groupID int32, permID int32, tx *sql.Tx) error {
 	stmt, err := db.stmt("check_permission", tx)
 
 	if err != nil {
 		return err
 	}
 
-	row := stmt.QueryRow(userId, groupId, permId)
+	row := stmt.QueryRow(userID, groupID, permID)
 
 	var count int64
 
@@ -129,7 +132,7 @@ func (db *SqlDatastore) checkPermission (userId int32, groupId int32, permId int
 	return nil
 }
 
-func (db *SqlDatastore) deleteInvitationAndReturnError (tx *sql.Tx, token string, errorToBeReturned error) (*Account, bool, error){
+func (db *SQLDatastore) deleteInvitationAndReturnError(tx *sql.Tx, token string, errorToBeReturned error) (*Account, bool, error) {
 	err := db.execStmtAndRollbackOnFail("delete_invitation", tx, token)
 
 	if err != nil {
@@ -146,7 +149,7 @@ func (db *SqlDatastore) deleteInvitationAndReturnError (tx *sql.Tx, token string
 
 }
 
-func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32) (*Account, bool, error) {
+func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32) (*Account, bool, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -165,16 +168,16 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 
 	var invitationEmail string
 	var invitationCreatedOn time.Time
-	var scoutGroupId int32
-	var accountId sql.NullInt64
+	var scoutGroupID int32
+	var accountID sql.NullInt64
 	var accountName sql.NullString
 	var accountAddress sql.NullString
 
 	err = row.Scan(
 		&invitationEmail, &invitationCreatedOn,
-		&scoutGroupId,
-		&accountId, &accountName, &accountAddress,
-		)
+		&scoutGroupID,
+		&accountID, &accountName, &accountAddress,
+	)
 
 	if err != nil {
 		db.rollback(tx)
@@ -185,15 +188,15 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 	account := new(Account)
 	var found bool
 
-	if accountId.Valid {
-		account.Id = int32(accountId.Int64)
+	if accountID.Valid {
+		account.ID = int32(accountID.Int64)
 		account.Name = accountName.String
 		account.Email = invitationEmail
 		account.Address = accountAddress.String
 
 		found = true
 
-		if requestingUser != NoRequestingUser && account.Id != requestingUser {
+		if requestingUser != NoRequestingUser && account.ID != requestingUser {
 			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StokenToken)
 		}
 
@@ -201,7 +204,7 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 		if requestingUser != NoRequestingUser {
 
 			// token email differs from requesting user's email
-			// otherwise accountId would be valid, being matched by fetch_invitation query
+			// otherwise accountID would be valid, being matched by fetch_invitation query
 			// so token has been "stolen", that is used by a user that is not the one
 			// the invitation was sent
 
@@ -239,19 +242,19 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 		if id > int64(math.MaxInt32) {
 			db.rollback(tx)
 
-			return nil, false, IdOverflow
+			return nil, false, ErrIDOverflow
 		}
 
-		account.Id = int32(id)
+		account.ID = int32(id)
 		account.Email = invitationEmail
 
 		found = false
 	}
 
-	err = db.checkPermission(account.Id, scoutGroupId, PermissionMember, tx)
+	err = db.checkPermission(account.ID, scoutGroupID, ScoutGroupMember, tx)
 
 	if err == ts_errors.Forbidden {
-		err = db.execStmtAndRollbackOnFail("grant", tx, PermissionMember, account.Id, scoutGroupId)
+		err = db.execStmtAndRollbackOnFail("grant", tx, ScoutGroupMember, account.ID, scoutGroupID)
 	} else if err != nil {
 		db.rollback(tx)
 	}
@@ -271,7 +274,7 @@ func (db *SqlDatastore) QueryInvitationToken (token string, requestingUser int32
 	return account, found, err
 }
 
-func (db *SqlDatastore) CreateInvitationForExistingMember (email string) (*Invitation, error) {
+func (db *SQLDatastore) CreateInvitationForExistingMember(email string) (*Invitation, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -321,14 +324,14 @@ func (db *SqlDatastore) CreateInvitationForExistingMember (email string) (*Invit
 	}
 
 	return &Invitation{
-		Token:token,
-		Email:email,
-		Expires:createdOn.Add(db.InvitationDuration),
+		Token:   token,
+		Email:   email,
+		Expires: createdOn.Add(db.InvitationDuration),
 	}, db.commit(tx)
 }
 
-func (db *SqlDatastore) QueryAccounts(group int32, userId int32) ([]*Account, error) {
-	err := db.checkPermission(userId, group, PermissionMember, nil)
+func (db *SQLDatastore) QueryAccounts(group int32, userID int32) ([]*Account, error) {
+	err := db.checkPermission(userID, group, ScoutGroupMember, nil)
 
 	if err != nil {
 		return nil, err
@@ -352,7 +355,7 @@ func (db *SqlDatastore) QueryAccounts(group int32, userId int32) ([]*Account, er
 
 	for rows.Next() {
 		account := new(Account)
-		err := rows.Scan(&account.Id, &account.Name, &account.Email, &account.Address)
+		err := rows.Scan(&account.ID, &account.Name, &account.Email, &account.Address)
 
 		if err != nil {
 			return nil, err
@@ -368,7 +371,7 @@ func (db *SqlDatastore) QueryAccounts(group int32, userId int32) ([]*Account, er
 	return accounts, nil
 }
 
-func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
+func (db *SQLDatastore) QueryAccount(id int32) (*Account, error) {
 	stmt, err := db.stmt("query_account", nil)
 
 	if err != nil {
@@ -378,7 +381,7 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 	row := stmt.QueryRow(id)
 
 	account := new(Account)
-	err = row.Scan(&account.Id, &account.Name, &account.Email, &account.Address)
+	err = row.Scan(&account.ID, &account.Name, &account.Email, &account.Address)
 
 	if err != nil {
 		return nil, err
@@ -387,7 +390,7 @@ func (db *SqlDatastore) QueryAccount(id int32) (*Account, error) {
 	return account, nil
 }
 
-func (db *SqlDatastore) AccountUpdate(account *Account) error {
+func (db *SQLDatastore) AccountUpdate(account *Account) error {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -402,7 +405,7 @@ func (db *SqlDatastore) AccountUpdate(account *Account) error {
 		return err
 	}
 
-	_, err = stmt.Exec(account.Name, account.Address, account.Id)
+	_, err = stmt.Exec(account.Name, account.Address, account.ID)
 
 	if err != nil {
 		db.rollback(tx)
@@ -414,7 +417,7 @@ func (db *SqlDatastore) AccountUpdate(account *Account) error {
 }
 
 /*
-func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, error) {
+func (db *SQLDatastore) InsertAccount(account *AccountWithCredentials) (int32, error) {
 	stmt, err := db.stmt("insert_account")
 
 	if err != nil {
@@ -463,13 +466,13 @@ func (db *SqlDatastore) InsertAccount(account *AccountWithCredentials) (int32, e
 	}
 
 	if id > int64(math.MaxInt32) {
-		return 0, IdOverflow
+		return 0, ErrIDOverflow
 	}
 
 	return int32(id), err
 }
 */
-func (db *SqlDatastore) AuthenticateAccount(email string, pwd string) (int32, error) {
+func (db *SQLDatastore) AuthenticateAccount(email string, pwd string) (int32, error) {
 	stmt, err := db.stmt("account_credentials", nil)
 
 	if err != nil {
@@ -482,33 +485,33 @@ func (db *SqlDatastore) AuthenticateAccount(email string, pwd string) (int32, er
 		return 0, err
 	}
 
-	var accId int32
+	var accID int32
 	var hashedPassword string
-	err = row.Scan(&accId, &hashedPassword)
+	err = row.Scan(&accID, &hashedPassword)
 
 	if err != nil {
 		return 0, err
 	}
 
-	db.Logger.Debugf("hashed pwd: %s %d --%s--", hashedPassword, accId, pwd)
+	db.Logger.Debugf("hashed pwd: %s %d --%s--", hashedPassword, accID, pwd)
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(pwd))
 
-	return accId, err
+	return accID, err
 }
 
-func (db *SqlDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd string) error {
+func (db *SQLDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd string) error {
 	return nil // TODO
 }
 
-func (db *SqlDatastore) AccountGroups(accountId int32) ([]*ScoutGroup, error) {
+func (db *SQLDatastore) AccountGroups(accountID int32) ([]*ScoutGroup, error) {
 	stmt, err := db.stmt("account_groups", nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(accountId, PermissionMember)
+	rows, err := stmt.Query(accountID, ScoutGroupMember)
 
 	if err != nil {
 		return nil, err
@@ -520,7 +523,7 @@ func (db *SqlDatastore) AccountGroups(accountId int32) ([]*ScoutGroup, error) {
 
 	for rows.Next() {
 		group := new(ScoutGroup)
-		err := rows.Scan(&group.Id, &group.Name)
+		err := rows.Scan(&group.ID, &group.Name)
 
 		if err != nil {
 			return nil, err
@@ -536,14 +539,14 @@ func (db *SqlDatastore) AccountGroups(accountId int32) ([]*ScoutGroup, error) {
 	return groups, nil
 }
 
-func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
+func (db *SQLDatastore) AccountScouts(accountID int32) ([]*Scout, error) {
 	stmt, err := db.stmt("account_scouts", nil)
 
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := stmt.Query(accountId)
+	rows, err := stmt.Query(accountID)
 
 	if err != nil {
 		return nil, err
@@ -555,7 +558,7 @@ func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
 
 	for rows.Next() {
 		scout := new(Scout)
-		err := rows.Scan(&scout.Id, &scout.Name, &scout.GroupId)
+		err := rows.Scan(&scout.ID, &scout.Name, &scout.GroupID)
 
 		if err != nil {
 			return nil, err
@@ -570,8 +573,9 @@ func (db *SqlDatastore) AccountScouts(accountId int32) ([]*Scout, error) {
 
 	return scouts, nil
 }
+
 /*
-func (db *SqlDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args... interface{}) error {
+func (db *SQLDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args... interface{}) error {
 	stmt, err := db.stmt(stmtName, tx)
 
 	row := stmt.QueryRow(args...)
@@ -591,25 +595,25 @@ func (db *SqlDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args...
 	return nil
 }*/
 
-func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, error) {
+func (db *SQLDatastore) InsertOrUpdateScout(scout Scout, tutorID int32) (int32, error) {
 	tx, err := db.Begin()
 
 	if err != nil {
 		return 0, err
 	}
 
-	var r int32 = 0
+	var r int32
 
 	// we check for group both in insert and update
 	// because we support group change in update
-	err = db.checkPermission(tutorId, scout.GroupId, PermissionMember, tx)
+	err = db.checkPermission(tutorID, scout.GroupID, ScoutGroupMember, tx)
 
 	if err != nil {
 		db.rollback(tx)
 		return 0, err
 	}
 
-	if scout.Id < 0 {
+	if scout.ID < 0 {
 		// insert a new scout
 
 		stmt, err := db.stmt("insert_scout", tx)
@@ -619,7 +623,7 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 			return 0, err
 		}
 
-		res, err := stmt.Exec(scout.Name, scout.GroupId)
+		res, err := stmt.Exec(scout.Name, scout.GroupID)
 
 		if err != nil {
 			db.rollback(tx)
@@ -636,7 +640,7 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 		if lid > int64(math.MaxInt32) {
 			db.rollback(tx)
 
-			return 0, IdOverflow
+			return 0, ErrIDOverflow
 		}
 
 		r = int32(lid)
@@ -649,7 +653,7 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 			return 0, err
 		}
 
-		_, err = stmt.Exec(tutorId, r)
+		_, err = stmt.Exec(tutorID, r)
 
 		if err != nil {
 			db.rollback(tx)
@@ -659,7 +663,7 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 	} else {
 		stmt, err := db.stmt("check_if_tutor", tx)
 
-		row := stmt.QueryRow(scout.Id, tutorId)
+		row := stmt.QueryRow(scout.ID, tutorID)
 
 		var count int64
 
@@ -679,7 +683,7 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 
 		stmt, err = db.stmt("update_scout", tx)
 
-		_, err = stmt.Exec(scout.Name, scout.GroupId, scout.Id)
+		_, err = stmt.Exec(scout.Name, scout.GroupID, scout.ID)
 
 		if err != nil {
 			db.rollback(tx)
@@ -687,13 +691,13 @@ func (db *SqlDatastore) InsertOrUpdateScout(scout Scout, tutorId int32) (int32, 
 			return 0, err
 		}
 
-		r = scout.Id
+		r = scout.ID
 	}
 
 	return r, db.commit(tx)
 }
 
-func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
+func (db *SQLDatastore) RemoveScout(scoutID int32, tutorID int32) error {
 	tx, err := db.Begin()
 
 	if err != nil {
@@ -707,7 +711,7 @@ func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
 		return err
 	}
 
-	res, err := stmt.Exec(scoutId, tutorId)
+	res, err := stmt.Exec(scoutID, tutorID)
 
 	if err != nil {
 		db.rollback(tx)
@@ -732,7 +736,7 @@ func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
 		return err
 	}
 
-	row := stmt.QueryRow(scoutId)
+	row := stmt.QueryRow(scoutID)
 
 	err = row.Scan(&count)
 
@@ -749,7 +753,7 @@ func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
 			return err
 		}
 
-		_, err = stmt.Exec(scoutId)
+		_, err = stmt.Exec(scoutID)
 
 		if err != nil {
 			db.rollback(tx)
@@ -760,7 +764,7 @@ func (db *SqlDatastore) RemoveScout(scoutId int32, tutorId int32) error {
 	return db.commit(tx)
 }
 
-func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
+func (db *SQLDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
 	db.preparedStatementsLock.RLock()
 	stmt, found := db.preparedStatements[query]
 	db.preparedStatementsLock.RUnlock()
@@ -773,10 +777,10 @@ func (db *SqlDatastore) stmt(query string, tx *sql.Tx) (*sql.Stmt, error) {
 		defer db.preparedStatementsLock.Unlock()
 
 		if !found {
-			sqlQuery, found := SqlQueries[query]
+			sqlQuery, found := SQLQueries[query]
 
 			if !found {
-				return nil, UnknownQuery // TODO: error parameter
+				return nil, ErrUnknownQuery // TODO: error parameter
 			}
 
 			stmt, err = db.Prepare(sqlQuery)

@@ -1,26 +1,29 @@
-package rest_backend
+package rest
 
 import (
 	"encoding/json"
-	"github.com/makeroo/taxi_scout/ts_errors"
 	"net/http"
+
+	"github.com/makeroo/taxi_scout/ts_errors"
 )
 
-type Invitation struct {
+// InvitationsRequest models /invitations request payload.
+type InvitationsRequest struct {
 	Email string `json:"email"`
 }
 
-func (server *RestServer) Invitations(w http.ResponseWriter, r *http.Request) {
+// Invitations implements /invitations REST request.
+func (server *Server) Invitations(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		w.Header().Add("Content-Type", "application/json")
 
 		decoder := json.NewDecoder(r.Body)
 
-		invitation := Invitation{}
+		invitation := InvitationsRequest{}
 		err := decoder.Decode(&invitation)
 
-		if  err != nil {
+		if err != nil {
 			server.Logger.Debugw("invitation: illegal payload",
 				"err", err)
 

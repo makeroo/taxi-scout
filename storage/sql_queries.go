@@ -1,8 +1,9 @@
 package storage
 
-var SqlQueries = map[string]string{
+// SQLQueries is a collection to all static SQL queries used by SQLDatastore.
+var SQLQueries = map[string]string{
 	"check_permission": "SELECT count(*) FROM account_grant WHERE account_id = ? AND group_id = ? AND permission_id = ?",
-	"grant": "INSERT INTO account_grant (permission_id, account_id, group_id) VALUES (?, ?, ?)",
+	"grant":            "INSERT INTO account_grant (permission_id, account_id, group_id) VALUES (?, ?, ?)",
 
 	"fetch_invitation": `
    SELECT i.email, i.created_on, i.group_id,
@@ -30,7 +31,7 @@ SELECT a.id, a.name, a.email, a.address
 
 	"query_account": "SELECT id, name, email, address FROM account WHERE id = ?",
 	//"insert_account": "INSERT INTO account (name, email, password, address) VALUES ( ?, ?, ?, ? )",
-	"update_account": "UPDATE account SET name = ?, address = ? WHERE id = ?",
+	"update_account":      "UPDATE account SET name = ?, address = ? WHERE id = ?",
 	"account_credentials": "SELECT id, password FROM account WHERE email = ?",
 
 	"account_groups": `
@@ -47,9 +48,9 @@ SELECT s.id, s.name, s.group_id
  WHERE t.tutor_id = ?
 `,
 
-	"add_scout": "INSERT INTO tutor_scout (tutor_id, scout_id) VALUES (?, ?)",
+	"add_scout":          "INSERT INTO tutor_scout (tutor_id, scout_id) VALUES (?, ?)",
 	"remove_scout_tutor": "DELETE FROM tutor_scout WHERE scout_id = ? AND tutor_id = ?",
-	"count_tutors": "SELECT count(*) FROM tutor_scout WHERE scout_id = ?",
+	"count_tutors":       "SELECT count(*) FROM tutor_scout WHERE scout_id = ?",
 
 	"check_if_tutor": "SELECT count(*) FROM tutor_scout WHERE scout_id=? AND tutor_id=?",
 

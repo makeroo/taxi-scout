@@ -1,4 +1,4 @@
-package rest_backend
+package rest
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func (server *RestServer) checkUserIdCookie (r *http.Request) (int32, error) {
+func (server *Server) checkUserIDCookie (r *http.Request) (int32, error) {
 	cookie, err := r.Cookie("_ts_u")
 
 	if err == http.ErrNoCookie {
@@ -20,9 +20,9 @@ func (server *RestServer) checkUserIdCookie (r *http.Request) (int32, error) {
 		return 0, ts_errors.BadRequest
 	}
 
-	var userId int32
+	var userID int32
 
-	err = server.Configuration.SecureCookies.Decode("_ts_u", cookie.Value, &userId)
+	err = server.Configuration.SecureCookies.Decode("_ts_u", cookie.Value, &userID)
 
 	if err != nil {
 		server.Logger.Debugw("cookie decoding failed",
@@ -31,27 +31,27 @@ func (server *RestServer) checkUserIdCookie (r *http.Request) (int32, error) {
 		err = ts_errors.BadRequest
 	}
 
-	return userId, err
+	return userID, err
 }
 
-func (server *RestServer) checkUserCookie (r *http.Request) (*storage.Account, error) {
-	userId, err := server.checkUserIdCookie(r)
+func (server *Server) checkUserCookie (r *http.Request) (*storage.Account, error) {
+	userID, err := server.checkUserIDCookie(r)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return server.Dao.QueryAccount(userId)
+	return server.Dao.QueryAccount(userID)
 }
 
 
-func (server *RestServer) setUserCookie (accountId int32, w http.ResponseWriter) {
-	if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountId); err == nil {
+func (server *Server) setUserCookie (accountID int32, w http.ResponseWriter) {
+	if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountID); err == nil {
 		cookie := &http.Cookie{
 			Name:  "_ts_u",
 			Value: encoded,
 			Path:  "/",
-			Secure: server.Configuration.HttpsCookies,
+			Secure: server.Configuration.HTTPSCookies,
 			HttpOnly: true,
 		}
 
@@ -61,7 +61,7 @@ func (server *RestServer) setUserCookie (accountId int32, w http.ResponseWriter)
 	}
 }
 
-func (server *RestServer) writeResponse (statusCode int, payload interface{}, w http.ResponseWriter) {
+func (server *Server) writeResponse (statusCode int, payload interface{}, w http.ResponseWriter) {
 	if val, ok := payload.(error); ok {
 		payload = map[string]string{
 			"error": val.Error(),

@@ -1,14 +1,15 @@
-package rest_backend
+package rest
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/makeroo/taxi_scout/storage"
 	"github.com/makeroo/taxi_scout/ts_errors"
-	"net/http"
 )
 
 /*
-func (server *RestServer) Scouts(w http.ResponseWriter, r *http.Request) {
+func (server *Server) Scouts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 
@@ -18,12 +19,14 @@ func (server *RestServer) Scouts(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-func (server *RestServer) Scout(w http.ResponseWriter, r *http.Request) {
+// Scout implements /scout/:id REST API.
+func (server *Server) Scout(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		w.Header().Add("Content-Type", "application/json")
 
-		myId, err := server.checkUserIdCookie(r)
+		// TODO: check that id in url and id in scout match
+		myID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -53,14 +56,14 @@ func (server *RestServer) Scout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if scout.Id < 0 {
+		if scout.ID < 0 {
 			server.Logger.Errorw("update scout without scout id")
 
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
-		scoutId, err := server.Dao.InsertOrUpdateScout(scout, myId)
+		scoutID, err := server.Dao.InsertOrUpdateScout(scout, myID)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -68,7 +71,7 @@ func (server *RestServer) Scout(w http.ResponseWriter, r *http.Request) {
 
 		case nil:
 			server.writeResponse(200, map[string]int32{
-				"id": scoutId,
+				"id": scoutID,
 			}, w)
 
 		default:

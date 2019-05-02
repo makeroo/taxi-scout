@@ -1,21 +1,23 @@
-package rest_backend
+package rest
 
 import (
 	gsql "database/sql"
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"github.com/gorilla/mux"
 	"github.com/makeroo/taxi_scout/storage"
 	"github.com/makeroo/taxi_scout/ts_errors"
-	"net/http"
-	"strconv"
 )
 
-
-type InvitationToken struct {
+// AccountsRequest models /accounts POST request payload.
+type AccountsRequest struct {
 	Token string `json:"invitation"`
 }
 
-func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
+// Accounts method implement /accounts REST requests.
+func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Add("Content-Type", "application/json")
@@ -27,7 +29,7 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		groupId64, err := strconv.ParseInt(group[0], 10, 32)
+		groupID64, err := strconv.ParseInt(group[0], 10, 32)
 
 		if err != nil {
 			server.Logger.Debugw("can't parse group query parameter",
@@ -37,9 +39,9 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		groupId := int32(groupId64)
+		groupID := int32(groupID64)
 
-		userId, err := server.checkUserIdCookie(r)
+		userID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -58,7 +60,7 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		accounts, err := server.Dao.QueryAccounts(groupId, userId)
+		accounts, err := server.Dao.QueryAccounts(groupID, userID)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -80,25 +82,25 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 		decoder := json.NewDecoder(r.Body)
 
-		invitationToken := InvitationToken{}
+		invitationToken := AccountsRequest{}
 
 		err := decoder.Decode(&invitationToken)
 
 		if err != nil {
-			server.Logger.Debugw("InvitationToken decoding failed",
+			server.Logger.Debugw("AccountsRequest decoding failed",
 				"err", err)
 
 			server.writeResponse(400, ts_errors.BadRequest, w)
 			return
 		}
 
-		userId, cookieErr := server.checkUserIdCookie(r)
+		userID, cookieErr := server.checkUserIDCookie(r)
 
 		if cookieErr != nil {
-			userId = storage.NoRequestingUser
+			userID = storage.NoRequestingUser
 		}
 
-		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userId)
+		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userID)
 
 		if err != nil {
 			if err == ts_errors.StokenToken {
@@ -112,17 +114,17 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 
 				server.writeResponse(200,
 					map[string]interface{}{
-						"id": userId,
+						"id":            userID,
 						"authenticated": false,
-						"new_account": false,
+						"new_account":   false,
 					},
 					w)
 
 				return
-			} else {
-				server.Logger.Debugw("both invitation processing and cookie decoding failed",
-					"cookieErr", cookieErr)
 			}
+
+			server.Logger.Debugw("both invitation processing and cookie decoding failed",
+				"cookieErr", cookieErr)
 
 			switch t := err.(type) {
 			case ts_errors.RestError:
@@ -145,14 +147,14 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if cookieErr != nil {
-			server.setUserCookie(account.Id, w)
+			server.setUserCookie(account.ID, w)
 		}
 
 		server.writeResponse(200,
 			map[string]interface{}{
-				"id": account.Id,
+				"id":            account.ID,
 				"authenticated": cookieErr != nil,
-				"new_account": !found,
+				"new_account":   !found,
 			},
 			w)
 
@@ -161,8 +163,8 @@ func (server *RestServer) Accounts(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
-func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
+// Account method implements /account REST requests.
+func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Add("Content-Type", "application/json")
@@ -176,7 +178,7 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 		if vars["id"] == "me" {
 			account, err = server.checkUserCookie(r)
 			if err == nil {
-				id32 = account.Id
+				id32 = account.ID
 			}
 		} else {
 			id, err := strconv.ParseInt(vars["id"], 10, 32)
@@ -215,7 +217,7 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if id32 != account.Id {
+		if id32 != account.ID {
 			server.writeResponse(403, ts_errors.Forbidden, w)
 			return
 		}
@@ -223,7 +225,7 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 		server.writeResponse(200, account, w)
 
 	case http.MethodPost:
-		myId, err := server.checkUserIdCookie(r)
+		myID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -253,7 +255,7 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if myId != account.Id {
+		if myID != account.ID {
 			server.writeResponse(403, ts_errors.Forbidden, w)
 			return
 		}
@@ -276,19 +278,21 @@ func (server *RestServer) Account(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type AccountAuthenticatePayload struct {
+// AccountAuthenticateRequest models /account/authenticate REST request payload.
+type AccountAuthenticateRequest struct {
 	Email string `json:"email"`
 	Pwd   string `json:"pwd"`
 }
 
-func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Request) {
+// AccountsAuthenticate implements /account/authenticate REST request.
+func (server *Server) AccountsAuthenticate(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		w.Header().Add("Content-Type", "application/json")
 
 		decoder := json.NewDecoder(r.Body)
 
-		credentials := AccountAuthenticatePayload{}
+		credentials := AccountAuthenticateRequest{}
 		err := decoder.Decode(&credentials)
 
 		if err != nil {
@@ -300,7 +304,7 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		accountId, err := server.Dao.AuthenticateAccount(credentials.Email, credentials.Pwd)
+		accountID, err := server.Dao.AuthenticateAccount(credentials.Email, credentials.Pwd)
 
 		if err != nil {
 			server.Logger.Debugw("authentication failed",
@@ -314,36 +318,38 @@ func (server *RestServer) AccountsAuthenticate(w http.ResponseWriter, r *http.Re
 		server.Logger.Infow("user authenticated",
 			"email", credentials.Email)
 
-		if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountId); err == nil {
+		if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountID); err == nil {
 			cookie := &http.Cookie{
-				Name:  "_ts_u",
-				Value: encoded,
-				Path:  "/",
-				Secure: true,
+				Name:     "_ts_u",
+				Value:    encoded,
+				Path:     "/",
+				Secure:   true,
 				HttpOnly: true,
 			}
 			http.SetCookie(w, cookie)
 		}
 
-		server.writeResponse(200, map[string]int32{"id": accountId}, w)
+		server.writeResponse(200, map[string]int32{"id": accountID}, w)
 
 	default:
 		w.WriteHeader(405)
 	}
 }
 
+// TODO: write docs
 type AccountPasswordPayload struct {
-	Id     int32  `json:"id"`
+	ID     int32  `json:"id"`
 	OldPwd string `json:"old_pwd"`
 	NewPwd string `json:"new_pwd"`
 }
 
-func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request) {
+// TODO: write docs
+func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		w.Header().Add("Content-Type", "application/json")
 
-		userId, err := server.checkUserIdCookie(r)
+		userID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -363,7 +369,7 @@ func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request
 		decoder := json.NewDecoder(r.Body)
 
 		credentials := AccountPasswordPayload{}
-		err = decoder.Decode(credentials)
+		err = decoder.Decode(&credentials)
 
 		if err != nil {
 			server.Logger.Debugw("json decoding failed",
@@ -373,12 +379,12 @@ func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		if userId != credentials.Id {
+		if userID != credentials.ID {
 			server.writeResponse(403, ts_errors.Forbidden, w)
 			return
 		}
 
-		err = server.Dao.UpdateAccountPassword(credentials.Id, credentials.OldPwd, credentials.NewPwd)
+		err = server.Dao.UpdateAccountPassword(credentials.ID, credentials.OldPwd, credentials.NewPwd)
 
 		if err != nil {
 			server.Logger.Errorw("password update failed",
@@ -388,14 +394,15 @@ func (server *RestServer) AccountPassword(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		server.writeResponse(200, map[string]int32{"id": credentials.Id}, w)
+		server.writeResponse(200, map[string]int32{"id": credentials.ID}, w)
 
 	default:
 		w.WriteHeader(405)
 	}
 }
 
-func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) {
+// AccountGroups implements /account/:id/groups REST request.
+func (server *Server) AccountGroups(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Add("Content-Type", "application/json")
@@ -417,7 +424,7 @@ func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) 
 
 		id32 = int32(id)
 
-		uid, err := server.checkUserIdCookie(r)
+		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -458,7 +465,8 @@ func (server *RestServer) AccountGroups(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) {
+// AccountScouts method implements /account/:id/group/:id/scouts REST requests.
+func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Add("Content-Type", "application/json")
@@ -480,7 +488,7 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 
 		id32 = int32(id)
 
-		uid, err := server.checkUserIdCookie(r)
+		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -536,7 +544,7 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 
 		id32 = int32(id)
 
-		uid, err := server.checkUserIdCookie(r)
+		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -571,9 +579,9 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 
-		scout.Id = -1
+		scout.ID = -1
 
-		scoutId, err := server.Dao.InsertOrUpdateScout(scout, uid)
+		scoutID, err := server.Dao.InsertOrUpdateScout(scout, uid)
 
 		switch t := err.(type) {
 		case ts_errors.RestError:
@@ -581,7 +589,7 @@ func (server *RestServer) AccountScouts(w http.ResponseWriter, r *http.Request) 
 
 		case nil:
 			server.writeResponse(200, map[string]int32{
-				"id": scoutId,
+				"id": scoutID,
 			}, w)
 
 		default:

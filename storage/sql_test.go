@@ -3,10 +3,11 @@ package storage
 import (
 	"database/sql"
 	"database/sql/driver"
-	"github.com/google/uuid"
-	"github.com/makeroo/taxi_scout/ts_errors"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/makeroo/taxi_scout/ts_errors"
 
 	"github.com/DATA-DOG/go-sqlmock"
 
@@ -35,9 +36,9 @@ func TestSqlDatastore_QueryAccounts(t *testing.T) {
 			AddRow(45, "pippo", "pippo@dom", "addr"))
 	//mock.ExpectCommit()
 
-	dao, err := NewSqlDatastorec("mysql", db, logger)
+	dao, err := NewSQLDatastoreWithConnection("mysql", db, logger)
 	if err != nil {
-		t.Fatalf("failed to create SqlDatastore: error=%s", err)
+		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
 	accounts, err := dao.QueryAccounts(7, 3)
@@ -120,9 +121,9 @@ INSERT INTO invitation (token, email, created_on, group_id)
 
 	mock.ExpectCommit()
 
-	dao, err := NewSqlDatastorec("mysql", db, logger)
+	dao, err := NewSQLDatastoreWithConnection("mysql", db, logger)
 	if err != nil {
-		t.Fatalf("failed to create SqlDatastore: error=%s", err)
+		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
 	invitation, err := dao.CreateInvitationForExistingMember("mail@h")
@@ -178,9 +179,9 @@ INSERT INTO invitation (token, email, created_on, group_id)
 
 	mock.ExpectRollback()
 
-	dao, err := NewSqlDatastorec("mysql", db, logger)
+	dao, err := NewSQLDatastoreWithConnection("mysql", db, logger)
 	if err != nil {
-		t.Fatalf("failed to create SqlDatastore: error=%s", err)
+		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
 	_, err = dao.CreateInvitationForExistingMember("mail@h")
@@ -225,9 +226,9 @@ LEFT JOIN account a ON i.email = a.email
 		WillReturnRows(sqlmock.NewRows([]string{"email", "created_on", "group_id", "id", "name", "address"}))
 	mock.ExpectRollback()
 
-	dao, err := NewSqlDatastorec("mysql", db, logger)
+	dao, err := NewSQLDatastoreWithConnection("mysql", db, logger)
 	if err != nil {
-		t.Fatalf("failed to create SqlDatastore: error=%s", err)
+		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
 	_, _, err = dao.QueryInvitationToken("xxx", NoRequestingUser)
@@ -296,10 +297,9 @@ LEFT JOIN account a ON i.email = a.email
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
-
-	dao, err := NewSqlDatastorec("mysql", db, logger)
+	dao, err := NewSQLDatastoreWithConnection("mysql", db, logger)
 	if err != nil {
-		t.Fatalf("failed to create SqlDatastore: error=%s", err)
+		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
 	account, found, err := dao.QueryInvitationToken("xxx", NoRequestingUser)

@@ -1,11 +1,13 @@
 package storage
 
+// Account collects minimal informations about TaxiScout user.
 type Account struct {
-	Id    int32  `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID      int32  `json:"id"`
+	Name    string `json:"name"`
+	Email   string `json:"email"`
 	Address string `json:"address"`
 }
+
 /*
 type AccountWithCredentials struct {
 	*Account
