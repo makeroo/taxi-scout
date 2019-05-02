@@ -174,7 +174,7 @@ Permission: a user can query its own account record.
 **Method**: POST
 
 *Request*:
-{
+
 * email: STRING
 * pwd: STRING
 
@@ -208,6 +208,31 @@ Required role: public
                  and authenticated account email matches given one.
                  In this case no invitation token has been created.
 * expires: DATETIME
+
+
+### Scouts
+
+**URL**: `/scout/:id`
+
+**Method**: PUT
+
+Update scout profile.
+When ivoked without being autenticated, this method is used to implement
+"forgot password" function: a new invitation is created only if
+email owner is a member of a scout group.
+
+Required role: public
+
+*Request*:
+
+SCOUT
+
+*Response*:
+
+* id: Updated scout's ID.
+
+
+
 
 
 
