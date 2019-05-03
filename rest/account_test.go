@@ -80,7 +80,7 @@ func testResponse(t *testing.T, response *httptest.ResponseRecorder, expectedCod
 	}
 }
 
-func TestAccountsOk(t *testing.T) {
+func TestAccountsGet_WithCookie(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -115,7 +115,7 @@ func TestAccountsOk(t *testing.T) {
 	})
 }
 
-func TestAccountsNoCookie(t *testing.T) {
+func TestAccountsGet_NoCookie(t *testing.T) {
 	mockCtrl, _, _, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -138,7 +138,7 @@ func TestAccountsNoCookie(t *testing.T) {
 	})
 }
 
-func TestAccountsIllegalCookie(t *testing.T) {
+func TestAccountsGet_IllegalCookie(t *testing.T) {
 	mockCtrl, _, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -166,7 +166,7 @@ func TestAccountsIllegalCookie(t *testing.T) {
 	})
 }
 
-func TestAccountsPostNewAccount(t *testing.T) {
+func TestAccountsPost_WithoutCookie_NewAccount(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -211,7 +211,7 @@ func TestAccountsPostNewAccount(t *testing.T) {
 	})
 }
 
-func TestAccountsPostNewGroup(t *testing.T) {
+func TestAccountsPost_WithoutCookie_NewGroup(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -256,7 +256,7 @@ func TestAccountsPostNewGroup(t *testing.T) {
 	})
 }
 
-func TestAccountsPostNewAccountAlreadyAuthenticated(t *testing.T) {
+func TestAccountsPost_WithCookie_AccountMismatch(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -266,7 +266,7 @@ func TestAccountsPostNewAccountAlreadyAuthenticated(t *testing.T) {
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
 			}),
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, ts_errors.StokenToken),
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, ts_errors.StolenToken),
 	)
 
 	body, _ := json.Marshal(AccountsRequest{
@@ -292,7 +292,7 @@ func TestAccountsPostNewAccountAlreadyAuthenticated(t *testing.T) {
 	})
 }
 
-func TestAccountsPostNewGroupAlreadyAuthenticated(t *testing.T) {
+func TestAccountsPost_ValidTokenWithCookie_NewGroup(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -332,7 +332,7 @@ func TestAccountsPostNewGroupAlreadyAuthenticated(t *testing.T) {
 	})
 }
 
-func TestAccountsPostInvalidTokenNoCookie(t *testing.T) {
+func TestAccountsPost_InvalidTokenWithoutCookie(t *testing.T) {
 	mockCtrl, mockDatastore, _, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
@@ -373,7 +373,7 @@ func TestAccountsPostInvalidTokenNoCookie(t *testing.T) {
 	})
 }
 
-func TestAccountsPostInvalidTokenWithCookie(t *testing.T) {
+func TestAccountsPost_InvalidTokenWithCookie(t *testing.T) {
 	mockCtrl, mockDatastore, mockCookieManager, server := serverSetup(t)
 	defer mockCtrl.Finish()
 
