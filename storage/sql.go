@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -126,7 +126,7 @@ func (db *SQLDatastore) checkPermission(userID int32, groupID int32, permID int3
 	}
 
 	if count == 0 {
-		return ts_errors.Forbidden
+		return tserrors.Forbidden
 	}
 
 	return nil
@@ -197,7 +197,7 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 		found = true
 
 		if requestingUser != NoRequestingUser && account.ID != requestingUser {
-			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StolenToken)
+			return db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
 		}
 
 	} else {
@@ -208,13 +208,13 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 			// so token has been "stolen", that is used by a user that is not the one
 			// the invitation was sent
 
-			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StolenToken)
+			return db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
 		}
 
 		invitationExpires := invitationCreatedOn.Add(db.InvitationDuration)
 
 		if invitationExpires.Before(time.Now()) {
-			return db.deleteInvitationAndReturnError(tx, token, ts_errors.Expired)
+			return db.deleteInvitationAndReturnError(tx, token, tserrors.Expired)
 		}
 
 		stmt, err = db.stmt("create_account_from_invitation", tx)
@@ -253,7 +253,7 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 
 	err = db.checkPermission(account.ID, scoutGroupID, ScoutGroupMember, tx)
 
-	if err == ts_errors.Forbidden {
+	if err == tserrors.Forbidden {
 		err = db.execStmtAndRollbackOnFail("grant", tx, ScoutGroupMember, account.ID, scoutGroupID)
 	} else if err != nil {
 		db.rollback(tx)
@@ -320,7 +320,7 @@ func (db *SQLDatastore) CreateInvitationForExistingMember(email string) (*Invita
 	if rowsAffected == 0 {
 		db.rollback(tx)
 
-		return nil, ts_errors.Forbidden
+		return nil, tserrors.Forbidden
 	}
 
 	return &Invitation{
@@ -589,7 +589,7 @@ func (db *SQLDatastore) checkPermissionStmt(stmtName string, tx *sql.Tx, args...
 	}
 
 	if count == 0 {
-		return ts_errors.Forbidden
+		return tserrors.Forbidden
 	}
 
 	return nil
@@ -678,7 +678,7 @@ func (db *SQLDatastore) InsertOrUpdateScout(scout Scout, tutorID int32) (int32, 
 		if count == 0 {
 			db.rollback(tx)
 
-			return 0, ts_errors.Forbidden
+			return 0, tserrors.Forbidden
 		}
 
 		stmt, err = db.stmt("update_scout", tx)

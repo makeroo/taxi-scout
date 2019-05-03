@@ -1,6 +1,6 @@
 package storage
 
-import "github.com/kataras/iris/core/errors"
+import "errors"
 
 // NoRequestingUser is an invalid key to indicate no user.
 const NoRequestingUser = int32(-1)

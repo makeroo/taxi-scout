@@ -1,4 +1,4 @@
-package ts_errors
+package errors
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ type RestError struct {
 	Code int
 }
 
-func (error *RestError) Json () ([]byte, error) {
+func (error *RestError) Json() ([]byte, error) {
 	return json.Marshal(map[string]string{
 		"error": error.Error(),
 	})

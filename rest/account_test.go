@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 	"github.com/makeroo/taxi_scout/mocks"
-	"github.com/makeroo/taxi_scout/ts_errors"
 
 	"github.com/makeroo/taxi_scout/storage"
 	"go.uber.org/zap"
@@ -266,7 +266,7 @@ func TestAccountsPost_WithCookie_AccountMismatch(t *testing.T) {
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
 			}),
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, ts_errors.StolenToken),
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, tserrors.StolenToken),
 	)
 
 	body, _ := json.Marshal(AccountsRequest{

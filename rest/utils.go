@@ -2,7 +2,7 @@ package rest
 
 import (
 	"encoding/json"
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 	"github.com/makeroo/taxi_scout/storage"
 	"net/http"
 )
@@ -11,13 +11,13 @@ func (server *Server) checkUserIDCookie (r *http.Request) (int32, error) {
 	cookie, err := r.Cookie("_ts_u")
 
 	if err == http.ErrNoCookie {
-		return 0, ts_errors.NotAuthorized
+		return 0, tserrors.NotAuthorized
 	}
 
 	if err != nil {
 		server.Logger.Debugw("failed at reading cookies",
 			"err", err)
-		return 0, ts_errors.BadRequest
+		return 0, tserrors.BadRequest
 	}
 
 	var userID int32
@@ -28,7 +28,7 @@ func (server *Server) checkUserIDCookie (r *http.Request) (int32, error) {
 		server.Logger.Debugw("cookie decoding failed",
 			"err", err)
 
-		err = ts_errors.BadRequest
+		err = tserrors.BadRequest
 	}
 
 	return userID, err

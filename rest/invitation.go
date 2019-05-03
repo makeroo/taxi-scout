@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 )
 
 // InvitationsRequest models /invitations request payload.
@@ -27,14 +27,14 @@ func (server *Server) Invitations(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("invitation: illegal payload",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		account, err := server.checkUserCookie(r)
 
 		switch err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			break
 
 		case nil:
@@ -43,7 +43,7 @@ func (server *Server) Invitations(w http.ResponseWriter, r *http.Request) {
 					"authenticated": true,
 				}, w)
 			} else {
-				server.writeResponse(403, ts_errors.Forbidden, w)
+				server.writeResponse(403, tserrors.Forbidden, w)
 			}
 			return
 
@@ -51,14 +51,14 @@ func (server *Server) Invitations(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("unexpected dao error",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
 		newInvitation, err := server.Dao.CreateInvitationForExistingMember(invitation.Email)
 
 		if err != nil {
-			server.writeResponse(500, ts_errors.BadRequest, w)
+			server.writeResponse(500, tserrors.BadRequest, w)
 			return
 		}
 

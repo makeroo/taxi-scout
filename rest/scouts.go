@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/makeroo/taxi_scout/storage"
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 )
 
 /*
@@ -29,7 +29,7 @@ func (server *Server) Scout(w http.ResponseWriter, r *http.Request) {
 		myID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -39,7 +39,7 @@ func (server *Server) Scout(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -52,21 +52,21 @@ func (server *Server) Scout(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("update scout: illegal payload",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		if scout.ID < 0 {
 			server.Logger.Errorw("update scout without scout id")
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		scoutID, err := server.Dao.InsertOrUpdateScout(scout, myID)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 
 		case nil:
@@ -78,7 +78,7 @@ func (server *Server) Scout(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("scout update failed",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 		}
 
 	default:

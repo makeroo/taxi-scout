@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/makeroo/taxi_scout/storage"
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 )
 
 // AccountsRequest models /accounts POST request payload.
@@ -25,7 +25,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 		group, found := r.URL.Query()["group"]
 
 		if !found || len(group) != 1 {
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -35,7 +35,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("can't parse group query parameter",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -44,7 +44,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 		userID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -56,14 +56,14 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 				"err", err)
 
 			// TODO: unsure if it is corrrect 400 or 403
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		accounts, err := server.Dao.QueryAccounts(groupID, userID)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 
 			return
@@ -74,7 +74,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 		default:
 			server.Logger.Errorw("fetch accounts failed",
 				"err", err)
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 		}
 
 	case http.MethodPost:
@@ -90,7 +90,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("AccountsRequest decoding failed",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -103,8 +103,8 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userID)
 
 		if err != nil {
-			if err == ts_errors.StolenToken {
-				server.writeResponse(ts_errors.StolenToken.Code, err, w)
+			if err == tserrors.StolenToken {
+				server.writeResponse(tserrors.StolenToken.Code, err, w)
 				return
 			}
 
@@ -127,19 +127,19 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 				"cookieErr", cookieErr)
 
 			switch t := err.(type) {
-			case ts_errors.RestError:
+			case tserrors.RestError:
 				server.writeResponse(t.Code, t, w)
 				return
 
 			default:
 				if t == gsql.ErrNoRows {
-					server.writeResponse(404, ts_errors.NotFound, w)
+					server.writeResponse(404, tserrors.NotFound, w)
 				} else {
 					server.Logger.Errorw("account creation failed",
 						"err", err,
 					)
 
-					server.writeResponse(500, ts_errors.ServerError, w)
+					server.writeResponse(500, tserrors.ServerError, w)
 				}
 
 				return
@@ -187,7 +187,7 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 				server.Logger.Errorw("illegal id parameter",
 					"err", err)
 
-				server.writeResponse(400, ts_errors.BadRequest, w)
+				server.writeResponse(400, tserrors.BadRequest, w)
 				return
 			}
 
@@ -196,7 +196,7 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -204,21 +204,21 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 
 		default:
 			if err == gsql.ErrNoRows {
-				server.writeResponse(401, ts_errors.NotAuthorized, w)
+				server.writeResponse(401, tserrors.NotAuthorized, w)
 
 			} else {
 				server.Logger.Errorw("account query failed",
 					"err", err,
 				)
 
-				server.writeResponse(500, ts_errors.ServerError, w)
+				server.writeResponse(500, tserrors.ServerError, w)
 			}
 
 			return
 		}
 
 		if id32 != account.ID {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -228,7 +228,7 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 		myID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -238,7 +238,7 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -251,12 +251,12 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("update account: illegal payload",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		if myID != account.ID {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -266,7 +266,7 @@ func (server *Server) Account(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("update account: update failed",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
@@ -299,7 +299,7 @@ func (server *Server) AccountsAuthenticate(w http.ResponseWriter, r *http.Reques
 			server.Logger.Debugw("payload unmarshalling failed",
 				"err", err,
 			)
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 
 			return
 		}
@@ -311,7 +311,7 @@ func (server *Server) AccountsAuthenticate(w http.ResponseWriter, r *http.Reques
 				"err", err,
 				"email", credentials.Email,
 			)
-			server.writeResponse(401, ts_errors.NotAuthorized, w)
+			server.writeResponse(401, tserrors.NotAuthorized, w)
 			return
 		}
 
@@ -352,7 +352,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 		userID, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -362,7 +362,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -380,7 +380,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if userID != credentials.ID {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -390,7 +390,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("password update failed",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
@@ -418,7 +418,7 @@ func (server *Server) AccountGroups(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("illegal id parameter",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -427,7 +427,7 @@ func (server *Server) AccountGroups(w http.ResponseWriter, r *http.Request) {
 		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -437,12 +437,12 @@ func (server *Server) AccountGroups(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		if id32 != uid {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -454,7 +454,7 @@ func (server *Server) AccountGroups(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("storage error:",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
@@ -482,7 +482,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("illegal id parameter",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -491,7 +491,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -501,12 +501,12 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		if id32 != uid {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -518,7 +518,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("storage error:",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
@@ -538,7 +538,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("illegal id parameter",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -547,7 +547,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 		uid, err := server.checkUserIDCookie(r)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 			return
 
@@ -557,12 +557,12 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("unexpected cookie error",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
 		if id32 != uid {
-			server.writeResponse(403, ts_errors.Forbidden, w)
+			server.writeResponse(403, tserrors.Forbidden, w)
 			return
 		}
 
@@ -575,7 +575,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Debugw("update scout: illegal payload",
 				"err", err)
 
-			server.writeResponse(400, ts_errors.BadRequest, w)
+			server.writeResponse(400, tserrors.BadRequest, w)
 			return
 		}
 
@@ -584,7 +584,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 		scoutID, err := server.Dao.InsertOrUpdateScout(scout, uid)
 
 		switch t := err.(type) {
-		case ts_errors.RestError:
+		case tserrors.RestError:
 			server.writeResponse(t.Code, t, w)
 
 		case nil:
@@ -596,7 +596,7 @@ func (server *Server) AccountScouts(w http.ResponseWriter, r *http.Request) {
 			server.Logger.Errorw("scout insert failed",
 				"err", err)
 
-			server.writeResponse(500, ts_errors.ServerError, w)
+			server.writeResponse(500, tserrors.ServerError, w)
 		}
 
 	default:

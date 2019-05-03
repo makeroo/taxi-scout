@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/makeroo/taxi_scout/ts_errors"
+	tserrors "github.com/makeroo/taxi_scout/errors"
 
 	"github.com/DATA-DOG/go-sqlmock"
 
@@ -185,7 +185,7 @@ INSERT INTO invitation (token, email, created_on, group_id)
 	}
 
 	_, err = dao.CreateInvitationForExistingMember("mail@h")
-	if err != ts_errors.Forbidden {
+	if err != tserrors.Forbidden {
 		t.Fatalf("CreateInvitationForExistingMember failed: expected forbidden, received=%s", err)
 	}
 
