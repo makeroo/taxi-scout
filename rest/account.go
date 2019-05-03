@@ -103,8 +103,8 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userID)
 
 		if err != nil {
-			if err == ts_errors.StokenToken {
-				server.writeResponse(ts_errors.StokenToken.Code, err, w)
+			if err == ts_errors.StolenToken {
+				server.writeResponse(ts_errors.StolenToken.Code, err, w)
 				return
 			}
 

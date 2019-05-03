@@ -197,7 +197,7 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 		found = true
 
 		if requestingUser != NoRequestingUser && account.ID != requestingUser {
-			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StokenToken)
+			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StolenToken)
 		}
 
 	} else {
@@ -208,7 +208,7 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 			// so token has been "stolen", that is used by a user that is not the one
 			// the invitation was sent
 
-			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StokenToken)
+			return db.deleteInvitationAndReturnError(tx, token, ts_errors.StolenToken)
 		}
 
 		invitationExpires := invitationCreatedOn.Add(db.InvitationDuration)
