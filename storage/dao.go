@@ -10,7 +10,7 @@ type Datastore interface {
 	CreateInvitationForExistingMember(email string) (*Invitation, error)
 
 	// use NoRequestingUser if no user is authenticated, otherwise his/her id
-	QueryInvitationToken(token string, requestingUser int32) (*Account, bool, error)
+	QueryInvitationToken(token string, requestingUser int32) (invitedAccount *Account, accountAlreadyExisted bool, scoutGroupID int32, joinedGroup bool, err error)
 
 	QueryAccounts(group int32, userID int32) ([]*Account, error)
 

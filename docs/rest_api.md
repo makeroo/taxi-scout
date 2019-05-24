@@ -102,8 +102,18 @@ Rquired permission: public
 
   Whether the invitation token has been used or not.
 
-When the invitation token is used, a cookie named _ts_u is used. This cookie is used as authentication token
-for next calls.
+* joined_group: INT
+
+  If the invitation was used to join a new scout group
+  then joined_group value is that scout group id.
+  Otherwise the property is not defined.
+
+This method is used to grant membership to a scout group OR to reset password. In this case the user
+send an invitation to itself by email, thus verifying
+his/her email account.
+
+When the invitation token is used, a cookie named _ts_u is created. This cookie is used as authentication token
+for the next calls.
 
 When cookie _ts_u is submitted, even if the invitation token is not found or expired, the call succeded
 returning the account id of the logged user and new_account and authenticated both set to false.

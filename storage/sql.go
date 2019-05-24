@@ -132,11 +132,11 @@ func (db *SQLDatastore) checkPermission(userID int32, groupID int32, permID int3
 	return nil
 }
 
-func (db *SQLDatastore) deleteInvitationAndReturnError(tx *sql.Tx, token string, errorToBeReturned error) (*Account, bool, error) {
-	err := db.execStmtAndRollbackOnFail("delete_invitation", tx, token)
+func (db *SQLDatastore) deleteInvitationAndReturnError(tx *sql.Tx, token string, errorToBeReturned error) (err error) {
+	err = db.execStmtAndRollbackOnFail("delete_invitation", tx, token)
 
 	if err != nil {
-		return nil, false, err
+		return
 	}
 
 	err = db.commit(tx)
@@ -145,30 +145,32 @@ func (db *SQLDatastore) deleteInvitationAndReturnError(tx *sql.Tx, token string,
 		err = errorToBeReturned
 	}
 
-	return nil, false, err
-
+	return
 }
 
-func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32) (*Account, bool, error) {
-	tx, err := db.Begin()
+func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32) (invitedAccount *Account, accountAlreadyExisted bool, scoutGroupID int32, joinedGroup bool, err error) {
+	var tx *sql.Tx
+
+	tx, err = db.Begin()
 
 	if err != nil {
-		return nil, false, err
+		return
 	}
 
-	stmt, err := db.stmt("fetch_invitation", tx)
+	var stmt *sql.Stmt
+
+	stmt, err = db.stmt("fetch_invitation", tx)
 
 	if err != nil {
 		db.rollback(tx)
 
-		return nil, false, err
+		return
 	}
 
 	row := stmt.QueryRow(token)
 
 	var invitationEmail string
 	var invitationCreatedOn time.Time
-	var scoutGroupID int32
 	var accountID sql.NullInt64
 	var accountName sql.NullString
 	var accountAddress sql.NullString
@@ -182,22 +184,22 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 	if err != nil {
 		db.rollback(tx)
 
-		return nil, false, err
+		return
 	}
 
-	account := new(Account)
-	var found bool
+	invitedAccount = new(Account)
 
 	if accountID.Valid {
-		account.ID = int32(accountID.Int64)
-		account.Name = accountName.String
-		account.Email = invitationEmail
-		account.Address = accountAddress.String
+		invitedAccount.ID = int32(accountID.Int64)
+		invitedAccount.Name = accountName.String
+		invitedAccount.Email = invitationEmail
+		invitedAccount.Address = accountAddress.String
 
-		found = true
+		accountAlreadyExisted = true
 
-		if requestingUser != NoRequestingUser && account.ID != requestingUser {
-			return db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
+		if requestingUser != NoRequestingUser && invitedAccount.ID != requestingUser {
+			err = db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
+			return
 		}
 
 	} else {
@@ -208,59 +210,65 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 			// so token has been "stolen", that is used by a user that is not the one
 			// the invitation was sent
 
-			return db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
+			err = db.deleteInvitationAndReturnError(tx, token, tserrors.StolenToken)
+			return
 		}
 
 		invitationExpires := invitationCreatedOn.Add(db.InvitationDuration)
 
 		if invitationExpires.Before(time.Now()) {
-			return db.deleteInvitationAndReturnError(tx, token, tserrors.Expired)
+			err = db.deleteInvitationAndReturnError(tx, token, tserrors.Expired)
+			return
 		}
 
 		stmt, err = db.stmt("create_account_from_invitation", tx)
 
 		if err != nil {
 			db.rollback(tx)
-			return nil, false, err
+			return
 		}
 
-		res, err := stmt.Exec(token)
+		var res sql.Result
+		res, err = stmt.Exec(token)
 
 		if err != nil {
 			db.rollback(tx)
-			return nil, false, err
+			return
 		}
 
-		id, err := res.LastInsertId()
+		var id int64
+		id, err = res.LastInsertId()
 
 		if err != nil {
 			db.rollback(tx)
 
-			return nil, false, err
+			return
 		}
 
 		if id > int64(math.MaxInt32) {
 			db.rollback(tx)
 
-			return nil, false, ErrIDOverflow
+			err = ErrIDOverflow
+			return
 		}
 
-		account.ID = int32(id)
-		account.Email = invitationEmail
+		invitedAccount.ID = int32(id)
+		invitedAccount.Email = invitationEmail
 
-		found = false
+		accountAlreadyExisted = false
 	}
 
-	err = db.checkPermission(account.ID, scoutGroupID, ScoutGroupMember, tx)
+	err = db.checkPermission(invitedAccount.ID, scoutGroupID, ScoutGroupMember, tx)
 
 	if err == tserrors.Forbidden {
-		err = db.execStmtAndRollbackOnFail("grant", tx, ScoutGroupMember, account.ID, scoutGroupID)
+		err = db.execStmtAndRollbackOnFail("grant", tx, ScoutGroupMember, invitedAccount.ID, scoutGroupID)
+		joinedGroup = true
 	} else if err != nil {
 		db.rollback(tx)
 	}
 
 	if err != nil {
-		return nil, false, err
+		return
 	}
 
 	err = db.execStmtAndRollbackOnFail("delete_invitation", tx, token)
@@ -271,7 +279,7 @@ func (db *SQLDatastore) QueryInvitationToken(token string, requestingUser int32)
 		err = db.commit(tx)
 	}
 
-	return account, found, err
+	return
 }
 
 func (db *SQLDatastore) CreateInvitationForExistingMember(email string) (*Invitation, error) {

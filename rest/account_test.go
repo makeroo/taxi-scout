@@ -173,7 +173,7 @@ func TestAccountsPost_WithoutCookie_NewAccount(t *testing.T) {
 	gomock.InOrder(
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(&storage.Account{
 			ID: 1, Name: "name", Email: "email", Address: "addr",
-		}, false, nil),
+		}, false, int32(4), true, nil),
 		mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 		/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
 					Return(nil).
@@ -203,6 +203,7 @@ func TestAccountsPost_WithoutCookie_NewAccount(t *testing.T) {
 		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": true,
 		"new_account":   true,
+		"scout_group":   float64(4),
 	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
@@ -218,7 +219,7 @@ func TestAccountsPost_WithoutCookie_NewGroup(t *testing.T) {
 	gomock.InOrder(
 		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(&storage.Account{
 			ID: 1, Name: "name", Email: "email", Address: "addr",
-		}, true, nil),
+		}, true, int32(9), true, nil),
 		mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 		/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
 					Return(nil).
@@ -248,6 +249,7 @@ func TestAccountsPost_WithoutCookie_NewGroup(t *testing.T) {
 		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": true,
 		"new_account":   false,
+		"scout_group":   float64(9),
 	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
@@ -266,7 +268,7 @@ func TestAccountsPost_WithCookie_AccountMismatch(t *testing.T) {
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
 			}),
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, tserrors.StolenToken),
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, int32(0), false, tserrors.StolenToken),
 	)
 
 	body, _ := json.Marshal(AccountsRequest{
@@ -300,11 +302,11 @@ func TestAccountsPost_ValidTokenWithCookie_NewGroup(t *testing.T) {
 		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
 			Return(nil).
 			Do(func(name string, value string, dst *int32) {
-				*dst = 9
+				*dst = int32(1)
 			}),
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(&storage.Account{
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(1)).Return(&storage.Account{
 			ID: 1, Name: "name", Email: "email", Address: "addr",
-		}, true, nil),
+		}, true, int32(5), true, nil),
 	)
 
 	body, _ := json.Marshal(AccountsRequest{
@@ -324,6 +326,7 @@ func TestAccountsPost_ValidTokenWithCookie_NewGroup(t *testing.T) {
 		"id":            float64(1), // FIXME: this is float32 on 32bit os
 		"authenticated": false,
 		"new_account":   false,
+		"scout_group":   float64(5),
 	}, func(decoder *json.Decoder) (interface{}, error) {
 		var v map[string]interface{}
 		err := decoder.Decode(&v)
@@ -337,7 +340,7 @@ func TestAccountsPost_InvalidTokenWithoutCookie(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	gomock.InOrder(
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(nil, false, sql.ErrNoRows),
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", storage.NoRequestingUser).Return(nil, false, int32(0), false, sql.ErrNoRows),
 		//mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 		/*		mockCookieManager.EXPECT().Decode("_ts_u", "expected", gomock.Any()).
 					Return(nil).
@@ -383,7 +386,7 @@ func TestAccountsPost_InvalidTokenWithCookie(t *testing.T) {
 			Do(func(name string, value string, dst *int32) {
 				*dst = 9
 			}),
-		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, sql.ErrNoRows),
+		mockDatastore.EXPECT().QueryInvitationToken("xxx", int32(9)).Return(nil, false, int32(0), false, sql.ErrNoRows),
 		//mockCookieManager.EXPECT().Encode("_ts_u", int32(1)).Return("cookie1", nil),
 	)
 

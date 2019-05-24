@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/makeroo/taxi_scout/storage"
 	tserrors "github.com/makeroo/taxi_scout/errors"
+	"github.com/makeroo/taxi_scout/storage"
 )
 
 // AccountsRequest models /accounts POST request payload.
@@ -100,7 +100,7 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 			userID = storage.NoRequestingUser
 		}
 
-		account, found, err := server.Dao.QueryInvitationToken(invitationToken.Token, userID)
+		account, found, scoutGroupID, joinedGroup, err := server.Dao.QueryInvitationToken(invitationToken.Token, userID)
 
 		if err != nil {
 			if err == tserrors.StolenToken {
@@ -150,13 +150,17 @@ func (server *Server) Accounts(w http.ResponseWriter, r *http.Request) {
 			server.setUserCookie(account.ID, w)
 		}
 
-		server.writeResponse(200,
-			map[string]interface{}{
-				"id":            account.ID,
-				"authenticated": cookieErr != nil,
-				"new_account":   !found,
-			},
-			w)
+		var resp = map[string]interface{}{
+			"id":            account.ID,
+			"authenticated": cookieErr != nil,
+			"new_account":   !found,
+		}
+
+		if joinedGroup {
+			resp["scout_group"] = scoutGroupID
+		}
+
+		server.writeResponse(200, resp, w)
 
 	default:
 		w.WriteHeader(405)

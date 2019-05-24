@@ -231,7 +231,7 @@ LEFT JOIN account a ON i.email = a.email
 		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
-	_, _, err = dao.QueryInvitationToken("xxx", NoRequestingUser)
+	_, _, _, _, err = dao.QueryInvitationToken("xxx", NoRequestingUser)
 
 	if err != sql.ErrNoRows {
 		t.Errorf("QueryInvitationToken did not failed with no rows: error=%v", err)
@@ -302,7 +302,7 @@ LEFT JOIN account a ON i.email = a.email
 		t.Fatalf("failed to create SQLDatastore: error=%s", err)
 	}
 
-	account, found, err := dao.QueryInvitationToken("xxx", NoRequestingUser)
+	account, found, scoutGroupID, joinedGroup, err := dao.QueryInvitationToken("xxx", NoRequestingUser)
 
 	if err != nil {
 		t.Errorf("QueryInvitationToken failed: error=%v", err)
@@ -317,6 +317,14 @@ LEFT JOIN account a ON i.email = a.email
 	expectedAccount := Account{23, "", "mail@h", ""}
 	if *account != expectedAccount {
 		t.Errorf("expected account: %v, found %v", expectedAccount, account)
+	}
+
+	if scoutGroupID != 32 {
+		t.Errorf("expected scoutGroupID: %v, found: %v", 32, scoutGroupID)
+	}
+
+	if !joinedGroup {
+		t.Errorf("did not joined group")
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
