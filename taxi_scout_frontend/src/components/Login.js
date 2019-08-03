@@ -57,10 +57,11 @@ class Login extends Component {
                                className="form-control"
                         />
                         <button className="btn btn-lg btn-primary btn-block mb-3"
-                                type="submit"
+                                type="button"
                                 onClick={this.handleSignIn}
                         >Sign in</button>
                         <button className="btn btn-lg btn-link btn-block"
+                                type="button"
                                 onClick={this.handleForgotPassword}
                         >Forgot password?</button>
                     </form>
