@@ -3,7 +3,7 @@ import Modal from 'react-modal';
 import {connect} from "react-redux";
 import {Link} from "react-router-dom";
 import {accountUpdateAddress, accountUpdateName, fetchMyAccount, saveAccount} from "../actions/accounts";
-import {BAD_REQUEST, SERVICE_NOT_AVAILABLE} from "../constants/errors";
+import {BAD_REQUEST, SERVICE_NOT_AVAILABLE, NOT_AUTHORIZED} from "../constants/errors";
 //import {jsonFetch, parseError} from "../utils/json_fetch";
 
 
@@ -58,6 +58,7 @@ class Account extends Component {
         this.handleNameChange = this.handleNameChange.bind(this);
         this.handleAddressChange = this.handleAddressChange.bind(this);
         this.handleEditScouts = this.handleEditScouts.bind(this);
+        this.handleChangePassword = this.handleChangePassword.bind(this);
         this.handleSave = this.handleSave.bind(this);
     }
 
@@ -75,6 +76,10 @@ class Account extends Component {
 
     handleEditScouts(evt) {
         this.props.history.push("/children/");
+    }
+
+    handleChangePassword(evt) {
+        this.props.history.push("/change-password/");
     }
 
     handleSave(evt) {
@@ -119,7 +124,7 @@ class Account extends Component {
         const error = account.error;
 
         if (error) {
-            if (error.error === BAD_REQUEST) {
+            if (error.error === BAD_REQUEST || error.error === NOT_AUTHORIZED) {
                 return (
                     <div>
                         <p>Session expired (probably)</p>
@@ -166,15 +171,22 @@ class Account extends Component {
                 <div className="container">
                     <h1>Something about you</h1>
                     <form>
-                        <div className="form-group">
-                            <label htmlFor="email">Email</label>
-                            <input type="text"
-                                   readOnly
-                                   className="form-control-plaintext"
-                                   id="email"
-                                   value={data.email}
-                            />
+                        <div className="form-row">
+                            <div className="form-group col-sx-9">
+                                <label htmlFor="email">Email</label>
+                                <input type="text"
+                                    readOnly
+                                    className="form-control-plaintext"
+                                    id="email"
+                                    value={data.email}
+                                />
+                            </div>
+                            <div className="form-group col-sx-3">
+                                <button className="btn btn-secondary" onClick={this.handleChangePassword}>Change password</button>
+                            </div>
                         </div>
+                    </form>
+                    <form>
                         <div className="form-group">
                             <label htmlFor="fullName">Name</label>
                             <input type="text"
@@ -227,8 +239,8 @@ class Account extends Component {
                             </small>
                         </div>
 
-                        <button type="submit"
-                                className="btn btn-primary mx-2"
+                        <button type="button"
+                                className="btn btn-primary"
                                 onClick={this.handleSave}
                                 disabled={savingAction.inProgress}
                         >Update and return to homepage</button>
