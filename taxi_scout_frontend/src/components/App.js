@@ -7,6 +7,7 @@ import Excursion from "./Excursion";
 import Children from "./Children";
 import Login from "./Login";
 import ForgotPassword from "./ForgotPassword";
+import ChangePassword from "./ChangePassword";
 import './App.scss';
 
 
@@ -41,6 +42,7 @@ class App extends Component {
                     <Route path="/account/" component={Account}/>
                     <Route path="/excursion/" component={Excursion}/>
                     <Route path="/children/" component={Children}/>
+                    <Route path="/change-password/" component={ChangePassword}/>
                 </div>
             </Router>
         );
