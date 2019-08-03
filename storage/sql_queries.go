@@ -34,6 +34,8 @@ SELECT a.id, a.name, a.email, a.address
 	"update_account":      "UPDATE account SET name = ?, address = ? WHERE id = ?",
 	"account_credentials": "SELECT id, password FROM account WHERE email = ?",
 
+	"change_password": "UPDATE account SET password = ? WHERE id = ?",
+
 	"account_groups": `
 SELECT g.id, g.name
   FROM scout_group g

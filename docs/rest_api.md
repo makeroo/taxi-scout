@@ -172,6 +172,22 @@ Permission: a user can query its own account record.
 
 *Response*: []SCOUT_GROUP
 
+
+**URL**: /account/:id/password
+
+**Method**: POST
+
+*Request*:
+
+ * p: STRING
+
+      The new password
+
+*Response*: empty.
+
+Change account password.
+
+
 **URL**: /account/:id/group/:id/scouts
 
 **Method**: GET

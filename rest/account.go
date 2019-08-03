@@ -322,16 +322,7 @@ func (server *Server) AccountsAuthenticate(w http.ResponseWriter, r *http.Reques
 		server.Logger.Infow("user authenticated",
 			"email", credentials.Email)
 
-		if encoded, err := server.Configuration.SecureCookies.Encode("_ts_u", accountID); err == nil {
-			cookie := &http.Cookie{
-				Name:     "_ts_u",
-				Value:    encoded,
-				Path:     "/",
-				Secure:   true,
-				HttpOnly: true,
-			}
-			http.SetCookie(w, cookie)
-		}
+		server.setUserCookie(accountID, w)
 
 		server.writeResponse(200, map[string]int32{"id": accountID}, w)
 
@@ -340,14 +331,12 @@ func (server *Server) AccountsAuthenticate(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// TODO: write docs
+// AccountPasswordPayload models /account/:id/password REST request payload.
 type AccountPasswordPayload struct {
-	ID     int32  `json:"id"`
-	OldPwd string `json:"old_pwd"`
-	NewPwd string `json:"new_pwd"`
+	NewPwd string `json:"p"`
 }
 
-// TODO: write docs
+// AccountPassword implements /account/:id/password REST request.
 func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
@@ -383,12 +372,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if userID != credentials.ID {
-			server.writeResponse(403, tserrors.Forbidden, w)
-			return
-		}
-
-		err = server.Dao.UpdateAccountPassword(credentials.ID, credentials.OldPwd, credentials.NewPwd)
+		err = server.Dao.UpdateAccountPassword(userID, credentials.NewPwd)
 
 		if err != nil {
 			server.Logger.Errorw("password update failed",
@@ -398,7 +382,7 @@ func (server *Server) AccountPassword(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		server.writeResponse(200, map[string]int32{"id": credentials.ID}, w)
+		server.writeResponse(200, map[string]int32{"id": userID}, w)
 
 	default:
 		w.WriteHeader(405)

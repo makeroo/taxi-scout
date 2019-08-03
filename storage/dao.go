@@ -18,7 +18,7 @@ type Datastore interface {
 
 	AuthenticateAccount(email string, pwd string) (int32, error)
 
-	UpdateAccountPassword(id int32, oldPwd string, newPwd string) error
+	UpdateAccountPassword(id int32, newPwd string) error
 
 	AccountGroups(accountID int32) ([]*ScoutGroup, error)
 

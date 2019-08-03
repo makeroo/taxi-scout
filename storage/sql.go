@@ -508,8 +508,49 @@ func (db *SQLDatastore) AuthenticateAccount(email string, pwd string) (int32, er
 	return accID, err
 }
 
-func (db *SQLDatastore) UpdateAccountPassword(id int32, oldPwd string, newPwd string) error {
-	return nil // TODO
+func (db *SQLDatastore) UpdateAccountPassword(id int32, newPwd string) error {
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	stmt, err := db.stmt("change_password", tx)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	// start password
+	password := []byte(newPwd)
+	encryptedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+	hashedPassword := string(encryptedPassword)
+
+	res, err := stmt.Exec(hashedPassword, id)
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	count, err := res.RowsAffected()
+
+	if err != nil {
+		db.rollback(tx)
+
+		return err
+	}
+
+	if count == 0 {
+		db.rollback(tx)
+
+		return tserrors.NotFound
+	}
+
+	return db.commit(tx)
 }
 
 func (db *SQLDatastore) AccountGroups(accountID int32) ([]*ScoutGroup, error) {
