@@ -1,8 +1,14 @@
+JS:
+* when cookie expires and /me returns 401 an error is shown instead of login page
+* change password must detect if cookie has expired
+
+forgot password:
+* handle send invitation response: show check your email msg or unknown email error
+
 login / invitation:
 * implement forgot password too:
    once received invitation, change welcome message
     into something like: "your password has been resetted, etc."
-    FIX: account page, add password change function
 * invitations: unit tests both on dao and rest components
   check "account w/o password workflow":
    - invitation => new account
