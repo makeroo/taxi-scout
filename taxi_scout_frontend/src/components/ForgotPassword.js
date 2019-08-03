@@ -56,12 +56,12 @@ class ForgotPassword extends Component {
                         />
 
                         <button className="btn btn-lg btn-primary btn-block mb-3"
-                                type="submit"
+                                type="button"
                                 onClick={this.handleSendInvitation}
                         >Reset password</button>
                         <button className="btn btn-lg btn-link btn-block"
-                                onClick={this.handleForgotPassword}
-                        >Forgot password?</button>
+                                onClick={this.handleLogin}
+                        >Sign in</button>
                     </form>
                 </div>
             </div>
