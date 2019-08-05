@@ -13,7 +13,7 @@ const mapStateToProps = (state) => {
 const mapDispatchToProps = (dispatch) => {
     return {
         signIn: (email, password) => {
-            dispatch(signIn(email, password))
+            return dispatch(signIn(email, password))
         },
     };
 };
@@ -30,7 +30,13 @@ class Login extends Component {
     }
 
     handleSignIn() {
-        this.props.signIn(this.emailInput.current.value, this.paswordInput.current.value)
+        let me = this;
+
+        me.props.signIn(me.emailInput.current.value, me.paswordInput.current.value).then (function () {
+            me.props.history.push('/');
+        }).catch (function (err) {
+            console.log('login failed', err);
+        });
     }
 
     handleForgotPassword() {
