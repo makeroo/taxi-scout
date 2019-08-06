@@ -2,18 +2,20 @@ import React, {Component} from 'react';
 import "./Login.scss";
 import {connect} from "react-redux";
 import {signIn} from "../actions/accounts";
+import {toastr} from 'react-redux-toastr';
+import {NOT_AUTHORIZED} from "../constants/errors";
 
 
 const mapStateToProps = (state) => {
     return {
-
+        account: state.account,
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
         signIn: (email, password) => {
-            return dispatch(signIn(email, password))
+            return dispatch(signIn(email, password));
         },
     };
 };
@@ -29,13 +31,22 @@ class Login extends Component {
         this.paswordInput = React.createRef();
     }
 
-    handleSignIn() {
+    handleSignIn(evt) {
+        evt.preventDefault();
+
         let me = this;
 
         me.props.signIn(me.emailInput.current.value, me.paswordInput.current.value).then (function () {
-            me.props.history.push('/');
-        }).catch (function (err) {
-            console.log('login failed', err);
+            let account = me.props.account;
+
+            if (account.error === null) {
+                me.props.history.push('/');
+            } else if (account.error.error === NOT_AUTHORIZED) {
+                toastr.error('Authentication failed', 'Check password');
+            } else {
+                // TODO: better error parsing
+                toastr.error('Service failure', 'Retry later');
+            }
         });
     }
 
@@ -63,7 +74,7 @@ class Login extends Component {
                                className="form-control"
                         />
                         <button className="btn btn-lg btn-primary btn-block mb-3"
-                                type="button"
+                                type="submit"
                                 onClick={this.handleSignIn}
                         >Sign in</button>
                         <button className="btn btn-lg btn-link btn-block"

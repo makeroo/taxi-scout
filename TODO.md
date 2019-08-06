@@ -1,14 +1,9 @@
 JS:
-* when cookie expires and /me returns 401 an error is shown instead of login page
-* change password must detect if cookie has expired
-
-forgot password:
-* handle send invitation response: show check your email msg or unknown email error
+revert no submit decision: use preventDefault instead so that a user can submit by pressig enter
 
 login / invitation:
-* implement forgot password too:
-   once received invitation, change welcome message
-    into something like: "your password has been resetted, etc."
+* handle current state: automatically redirect to homepage if already signedin
+
 * invitations: unit tests both on dao and rest components
   check "account w/o password workflow":
    - invitation => new account
@@ -17,6 +12,8 @@ login / invitation:
    - select forgot password (implement it with a new invitation:YES
      because the account already exists and is member of a group!)
 
+forgot password:
+* handle send invitation response: show check your email msg or unknown email error
 
 scouts editing:
  * obsolete initial state: discard scout property
