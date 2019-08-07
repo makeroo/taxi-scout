@@ -3,6 +3,7 @@ import "./Login.scss";
 import {connect} from "react-redux";
 import {signIn} from "../actions/accounts";
 import {toastr} from 'react-redux-toastr';
+import {fetchMyAccount} from "../actions/accounts";
 import {NOT_AUTHORIZED} from "../constants/errors";
 
 
@@ -14,6 +15,10 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
     return {
+        fetchMyAccount: () => {
+            dispatch(fetchMyAccount())
+        },
+
         signIn: (email, password) => {
             return dispatch(signIn(email, password));
         },
@@ -29,6 +34,10 @@ class Login extends Component {
         this.handleForgotPassword = this.handleForgotPassword.bind(this);
         this.emailInput = React.createRef();
         this.paswordInput = React.createRef();
+    }
+
+    componentDidMount() {
+        this.props.fetchMyAccount();
     }
 
     handleSignIn(evt) {
@@ -55,6 +64,12 @@ class Login extends Component {
     }
 
     render() {
+        const account = this.props.account;
+
+        if (account.data) {
+            this.props.history.push("/");
+        }
+
         return (
             <div className="Login">
                 <div className="container">
