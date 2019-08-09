@@ -69,6 +69,7 @@ class ForgotPassword extends Component {
 
         if (account.data) {
             this.props.history.push("/");
+            return null;
         }
 
         const invitation = this.props.invitation;

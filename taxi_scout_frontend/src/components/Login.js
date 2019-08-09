@@ -71,7 +71,7 @@ class Login extends Component {
 
         if (account.data) {
             this.props.history.push("/");
-            return;
+            return null;
         }
 
         // note: signin errors are handled in handleSignIn method
