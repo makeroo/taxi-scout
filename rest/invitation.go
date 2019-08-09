@@ -57,8 +57,19 @@ func (server *Server) Invitations(w http.ResponseWriter, r *http.Request) {
 
 		newInvitation, err := server.Dao.CreateInvitationForExistingMember(invitation.Email)
 
-		if err != nil {
-			server.writeResponse(500, tserrors.BadRequest, w)
+		switch t := err.(type) {
+		case tserrors.RestError:
+			server.writeResponse(t.Code, t, w)
+			return
+
+		case nil:
+			break
+
+		default:
+			server.Logger.Errorw("unexpected dao error",
+				"err", err)
+
+			server.writeResponse(500, tserrors.ServerError, w)
 			return
 		}
 
