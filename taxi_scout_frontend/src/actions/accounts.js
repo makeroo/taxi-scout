@@ -61,6 +61,7 @@ function completeAccountLoading(dispatch, fetchPromise) {
         dispatch(accountInfoFetchDataSuccess(groups, scouts));
     }).catch((error) => {
         dispatch(accountHasErrored(parseError(error)));
+        return Promise.reject(error);
     });
 }
 

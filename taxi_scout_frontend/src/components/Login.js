@@ -4,7 +4,7 @@ import {connect} from "react-redux";
 import {signIn} from "../actions/accounts";
 import {toastr} from 'react-redux-toastr';
 import {fetchMyAccount} from "../actions/accounts";
-import {NOT_AUTHORIZED} from "../constants/errors";
+import {NOT_AUTHORIZED, SERVICE_NOT_AVAILABLE, SERVER_ERROR} from "../constants/errors";
 
 
 const mapStateToProps = (state) => {
@@ -46,15 +46,18 @@ class Login extends Component {
         let me = this;
 
         me.props.signIn(me.emailInput.current.value, me.paswordInput.current.value).then (function () {
-            let account = me.props.account;
+            me.props.history.push('/');
 
-            if (account.error === null) {
-                me.props.history.push('/');
-            } else if (account.error.error === NOT_AUTHORIZED) {
+        }).catch (function (error) {
+            // TODO: move error messages to some error indexed map elsewhere
+            if (error.error === NOT_AUTHORIZED) {
                 toastr.error('Authentication failed', 'Check password');
-            } else {
-                // TODO: better error parsing
+            } else if (error.error === SERVICE_NOT_AVAILABLE) {
                 toastr.error('Service failure', 'Retry later');
+            } else if (error.error === SERVER_ERROR) {
+                toastr.error('Service failure', 'Please contact site admins');
+            } else {
+                toastr.error('Application error', 'This is probably a bug. Please contact the developers.');
             }
         });
     }
@@ -68,7 +71,10 @@ class Login extends Component {
 
         if (account.data) {
             this.props.history.push("/");
+            return;
         }
+
+        // note: signin errors are handled in handleSignIn method
 
         return (
             <div className="Login">
