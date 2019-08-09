@@ -93,11 +93,18 @@ class Invitation extends Component {
                         </p>
                     </div>
                 );
-            } else {
+            } else if (invitation.data.scout_group) {
                 return (
                     <div>
                         <p>Congratulations! You successfully joined another group.</p>
                         <p><Link to="/">Back to the homepage</Link></p>
+                    </div>
+                );
+            } else {
+                return (
+                    <div>
+                        <p>You successfully signed in by verifying your email address.</p>
+                        <p>Please, <a href="/change-password/">change your password</a> now.</p>
                     </div>
                 );
             }

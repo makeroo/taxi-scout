@@ -49,11 +49,12 @@ export function sendInvitation(email) {
         dispatch(invitationIsLoading());
 
         return jsonFetch('/invitations', { email }, 'POST')
-            .then(() => {
-                dispatch(invitationFetchDataSuccess(null))
+            .then((res) => {
+                dispatch(invitationFetchDataSuccess(res))
             })
             .catch((error) => {
                 dispatch(invitationHasErrored(parseError(error)));
+                return Promise.reject(error);
             });
     }
 }
