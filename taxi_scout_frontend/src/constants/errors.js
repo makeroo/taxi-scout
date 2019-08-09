@@ -4,4 +4,4 @@ export const EXPIRED = 'expired';
 export const SERVICE_NOT_AVAILABLE = 'service_not_available';
 export const BAD_REQUEST = 'bad_request';
 export const NOT_AUTHORIZED = 'not_authorized';
-//export const FORBIDDEN = 'forbidden';
+export const FORBIDDEN = 'forbidden';
