@@ -2,18 +2,26 @@ import React, {Component} from 'react';
 import "./Login.scss";
 import {connect} from "react-redux";
 import {sendInvitation} from "../actions/invitations";
+import {fetchMyAccount} from "../actions/accounts";
+import {toastr} from 'react-redux-toastr';
+import {FORBIDDEN, SERVICE_NOT_AVAILABLE, SERVER_ERROR} from "../constants/errors";
 
 
 const mapStateToProps = (state) => {
     return {
-
+        account: state.account,
+        invitation: state.invitation,
     };
 };
 
 const mapDispatchToProps = (dispatch) => {
     return {
+        fetchMyAccount: () => {
+            dispatch(fetchMyAccount())
+        },
+
         sendInvitation: (email, password) => {
-            dispatch(sendInvitation(email, password))
+            return dispatch(sendInvitation(email, password))
         },
     };
 };
@@ -28,8 +36,28 @@ class ForgotPassword extends Component {
         this.emailInput = React.createRef();
     }
 
-    handleSendInvitation() {
-        this.props.sendInvitation(this.emailInput.current.value);
+    componentDidMount() {
+        this.props.fetchMyAccount();
+    }
+
+    handleSendInvitation(evt) {
+        evt.preventDefault();
+
+        this.props.sendInvitation(this.emailInput.current.value).then(function () {
+            // console.log('invitation sent', arguments);
+
+        }).catch(function (error) {
+            //console.log('invitation error', error, arguments);
+            if (error.error === FORBIDDEN) {
+                toastr.error('Password reset failed', 'The email was not recognized');
+            } else if (error.error === SERVICE_NOT_AVAILABLE) {
+                toastr.error('Service failure', 'Retry later');
+            } else if (error.error === SERVER_ERROR) {
+                toastr.error('Service failure', 'Please contact site admins');
+            } else {
+                toastr.error('Application error', 'This is probably a bug. Please contact the developers.');
+            }
+        });
     }
 
     handleLogin() {
@@ -37,6 +65,30 @@ class ForgotPassword extends Component {
     }
 
     render() {
+        const account = this.props.account;
+
+        if (account.data) {
+            this.props.history.push("/");
+        }
+
+        const invitation = this.props.invitation;
+
+        if (invitation.data) {
+            return (
+                <div className="Login">
+                    <div className="container">
+                        <h1>Taxi Scout!</h1>
+                        <h2>Mail sent</h2>
+                        <p>
+                            You should recive an email containing a link.
+                            Please follow it to sign in and then change your
+                            password.
+                        </p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="Login">
                 <div className="container">
@@ -56,7 +108,7 @@ class ForgotPassword extends Component {
                         />
 
                         <button className="btn btn-lg btn-primary btn-block mb-3"
-                                type="button"
+                                type="submit"
                                 onClick={this.handleSendInvitation}
                         >Reset password</button>
                         <button className="btn btn-lg btn-link btn-block"
