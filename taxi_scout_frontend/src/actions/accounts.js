@@ -69,7 +69,7 @@ export function fetchMyAccount() {
     return (dispatch) => {
         dispatch(accountIsLoading());
 
-        return completeAccountLoading(dispatch, jsonFetch('/account/me'));
+        return completeAccountLoading(dispatch, jsonFetch('/account/me')).catch (function () {});
     };
 }
 
